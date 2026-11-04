@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.nocturne.learn.data.AppSettings
 import com.nocturne.learn.data.learning.LearningState
+import com.nocturne.learn.data.update.UpdateState
 import com.nocturne.learn.ui.components.Hairline
 import com.nocturne.learn.ui.components.SettingRow
 import com.nocturne.learn.ui.components.SubjectSwitcherSheet
@@ -54,6 +55,8 @@ fun ProfileScreen(
     onUpdatePlan: (String, Int) -> Unit,
     onSelectSubject: (String) -> Unit,
     onCreateSubject: (String, Int) -> Unit,
+    updateState: UpdateState,
+    onCheckForUpdates: () -> Unit,
 ) {
     var showPlanEditor by remember { mutableStateOf(false) }
     var showSubjects by remember { mutableStateOf(false) }
@@ -132,6 +135,13 @@ fun ProfileScreen(
             )
             Hairline()
             SettingRow(
+                title = "检查更新",
+                onClick = onCheckForUpdates,
+                subtitle = updateSubtitle(updateState, appVersion),
+                value = if (updateState is UpdateState.Available) "新版本" else null,
+            )
+            Hairline()
+            SettingRow(
                 title = "关于夜航",
                 onClick = { showAbout = true },
                 subtitle = "版本 $appVersion",
@@ -190,6 +200,16 @@ fun ProfileScreen(
     if (showAbout) {
         AboutDialog(onDismiss = { showAbout = false })
     }
+}
+
+private fun updateSubtitle(state: UpdateState, currentVersion: String): String = when (state) {
+    is UpdateState.Idle -> "当前版本 $currentVersion"
+    is UpdateState.Checking -> "正在检查…"
+    is UpdateState.Available -> "发现 v${state.info.version}，可以下载"
+    is UpdateState.Downloading -> "正在下载 v${state.info.version} · ${(state.progress * 100).toInt()}%"
+    is UpdateState.Ready -> "v${state.info.version} 已下载，等待安装"
+    is UpdateState.UpToDate -> "v${state.version} 已是最新"
+    is UpdateState.Failed -> "检查失败 · ${state.message}"
 }
 
 @OptIn(ExperimentalLayoutApi::class)

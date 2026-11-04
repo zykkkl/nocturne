@@ -7,6 +7,7 @@ import com.nocturne.learn.data.AppSettings
 import com.nocturne.learn.data.ConnectionResult
 import com.nocturne.learn.data.ProviderConfig
 import com.nocturne.learn.data.learning.LearningState
+import com.nocturne.learn.data.update.UpdateState
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -25,6 +26,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val learningState: StateFlow<LearningState> = learning.state
     val subjects: StateFlow<List<LearningState>> = learning.subjects
     val activeSubjectId: StateFlow<String?> = learning.activeSubjectId
+    val updateState: StateFlow<UpdateState> = container.updateManager.state
+    val updateDialogVisible: StateFlow<Boolean> = container.updateManager.dialogVisible
+    val appVersion: String = container.updateManager.currentVersion
 
     fun completeOnboarding(goal: String, dailyMinutes: Int) {
         viewModelScope.launch {
@@ -85,4 +89,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     suspend fun testConnection(baseUrl: String, apiKey: String): ConnectionResult =
         container.connectionTester.test(baseUrl, apiKey)
+
+    fun checkForUpdates(manual: Boolean = false) {
+        viewModelScope.launch { container.updateManager.check(manual) }
+    }
+
+    fun downloadUpdate() {
+        viewModelScope.launch { container.updateManager.download() }
+    }
+
+    fun installUpdate() = container.updateManager.install()
+
+    fun dismissUpdate() = container.updateManager.dismiss()
 }

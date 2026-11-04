@@ -35,6 +35,7 @@ import com.nocturne.learn.SessionViewModel
 import com.nocturne.learn.data.ProviderTemplates
 import com.nocturne.learn.ui.components.NocturneBottomBar
 import com.nocturne.learn.ui.components.TabDestination
+import com.nocturne.learn.ui.components.UpdateDialog
 import com.nocturne.learn.ui.design.JarvisOrb
 import com.nocturne.learn.ui.screens.HomeScreen
 import com.nocturne.learn.ui.screens.AskScreen
@@ -60,6 +61,8 @@ fun NocturneNav(viewModel: AppViewModel) {
     val learning by viewModel.learningState.collectAsState()
     val subjects by viewModel.subjects.collectAsState()
     val activeSubjectId by viewModel.activeSubjectId.collectAsState()
+    val updateState by viewModel.updateState.collectAsState()
+    val updateDialogVisible by viewModel.updateDialogVisible.collectAsState()
     val current = settings
 
     if (current == null) {
@@ -73,6 +76,10 @@ fun NocturneNav(viewModel: AppViewModel) {
     }
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
+
+    LaunchedEffect(Unit) {
+        viewModel.checkForUpdates(manual = false)
+    }
 
     Box(Modifier.fillMaxSize()) {
         NavHost(
@@ -162,6 +169,8 @@ fun NocturneNav(viewModel: AppViewModel) {
                     onUpdatePlan = viewModel::updatePlan,
                     onSelectSubject = viewModel::switchSubject,
                     onCreateSubject = viewModel::createSubject,
+                    updateState = updateState,
+                    onCheckForUpdates = { viewModel.checkForUpdates(manual = true) },
                 )
             }
 
@@ -233,6 +242,15 @@ fun NocturneNav(viewModel: AppViewModel) {
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
         }
+
+        UpdateDialog(
+            visible = updateDialogVisible,
+            state = updateState,
+            onDownload = viewModel::downloadUpdate,
+            onInstall = viewModel::installUpdate,
+            onDismiss = viewModel::dismissUpdate,
+            onRetry = { viewModel.checkForUpdates(manual = true) },
+        )
     }
 }
 
