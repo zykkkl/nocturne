@@ -1,9 +1,22 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.kotlin.plugin.serialization")
 }
+
+val keystoreProperties = Properties().apply {
+    val file = rootProject.file("keystore.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+
+fun releaseValue(property: String, env: String): String? =
+    System.getenv(env) ?: keystoreProperties.getProperty(property)
+
+val releaseStoreFilePath = releaseValue("storeFile", "RELEASE_STORE_FILE")
+val hasReleaseSigning = releaseStoreFilePath != null && rootProject.file(releaseStoreFilePath).exists()
 
 android {
     namespace = "com.nocturne.learn"
@@ -13,9 +26,20 @@ android {
         applicationId = "com.nocturne.learn"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = providers.gradleProperty("versionCode").map(String::toInt).orElse(2).get()
+        versionName = providers.gradleProperty("versionName").orElse("0.2.0").get()
         vectorDrawables { useSupportLibrary = true }
+    }
+
+    signingConfigs {
+        create("release") {
+            if (hasReleaseSigning) {
+                storeFile = rootProject.file(releaseStoreFilePath!!)
+                storePassword = releaseValue("storePassword", "RELEASE_STORE_PASSWORD")
+                keyAlias = releaseValue("keyAlias", "RELEASE_KEY_ALIAS")
+                keyPassword = releaseValue("keyPassword", "RELEASE_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
@@ -25,6 +49,13 @@ android {
         }
         release {
             isMinifyEnabled = false
+            // 本地没有 keystore.properties、CI 没有 Secrets 时退回 debug 签名，保证 APK 可安装；
+            // 正式发布务必配置 release 签名。
+            signingConfig = if (hasReleaseSigning) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",

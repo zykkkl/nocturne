@@ -66,4 +66,60 @@ app/src/main/java/com/nocturne/learn/
 
 ## CI
 
-`.github/workflows/android.yml` 在 push / PR 时构建 debug APK；发布 Release 时把 APK 附到 Release 资产。
+`.github/workflows/android.yml` 在 push / PR 时构建 debug APK 并上传 artifact。
+
+## 发布（GitHub Releases）
+
+`.github/workflows/release.yml` 在推送 `v*` tag 时构建**正式签名** APK，并自动创建 GitHub Release。
+
+### 一次性准备
+
+1. 在 GitHub 新建仓库，推上去：
+
+```bash
+git remote add origin https://github.com/<你的用户名>/<仓库名>.git
+git push -u origin main
+```
+
+2. 打开仓库 **Settings → Secrets and variables → Actions**，新建 4 个 secret：
+
+| Secret | 值 |
+| --- | --- |
+| `RELEASE_KEYSTORE_BASE64` | `nocturne-release.jks` 的 Base64（单行、无换行） |
+| `RELEASE_STORE_PASSWORD` | `keystore.properties` 里的 `storePassword` |
+| `RELEASE_KEY_ALIAS` | `nocturne` |
+| `RELEASE_KEY_PASSWORD` | `keystore.properties` 里的 `keyPassword` |
+
+生成 Base64：
+
+```bash
+# Git Bash / Linux
+base64 -w0 nocturne-release.jks | clip
+```
+
+```powershell
+# Windows PowerShell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("nocturne-release.jks")) | Set-Clipboard
+```
+
+3. **备份** `nocturne-release.jks` 和 `keystore.properties`（两者都已 gitignore）。签名一旦丢失，已安装的正式版无法覆盖升级，只能卸载重装。
+
+### 发一个版本
+
+```bash
+git add -A
+git commit -m "夜航 0.3.0: 本次改了什么"
+git tag v0.3.0
+git push origin main --tags
+```
+
+Actions 跑完后，GitHub Releases 会出现「夜航 v0.3.0」，下载 `app-release.apk` 直接安装。CI 把 versionCode 设为 `100000 + run_number`，每次发布都高于上一版，可覆盖升级并保留本机数据。
+
+本地也可以构建同样签名的包：
+
+```bash
+./gradlew :app:assembleRelease
+# app/build/outputs/apk/release/app-release.apk
+```
+
+首次构建前需保证根目录有 `keystore.properties`（本机已生成，不提交）。

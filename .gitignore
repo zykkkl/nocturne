@@ -26,3 +26,7 @@ captures/
 screenshots/
 tools/mock_requests.jsonl
 ui.xml
+
+# Release signing
+keystore.properties
+release.jks

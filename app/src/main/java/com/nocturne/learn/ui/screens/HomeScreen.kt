@@ -37,6 +37,7 @@ import com.nocturne.learn.ui.design.ProgressRing
 import com.nocturne.learn.ui.design.RowDot
 import com.nocturne.learn.ui.design.SectionLabel
 import com.nocturne.learn.ui.theme.NocturneColors
+import com.nocturne.learn.ui.util.rememberAppVersion
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -51,6 +52,7 @@ fun HomeScreen(
     onStartSession: () -> Unit,
 ) {
     val provider = settings.activeProvider
+    val appVersion = rememberAppVersion()
     val dateText = remember {
         LocalDate.now().format(DateTimeFormatter.ofPattern("M 月 d 日 · EEEE", Locale.CHINA))
     }
@@ -122,7 +124,7 @@ fun HomeScreen(
 
         item {
             Text(
-                text = "夜航 · 0.2.0",
+                text = "夜航 · $appVersion",
                 style = MaterialTheme.typography.labelSmall,
                 color = NocturneColors.TextTertiary,
                 modifier = Modifier.padding(start = 4.dp, top = 6.dp),

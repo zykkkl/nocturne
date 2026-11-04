@@ -39,6 +39,7 @@ import com.nocturne.learn.ui.design.NocturneChip
 import com.nocturne.learn.ui.design.NocturneTextField
 import com.nocturne.learn.ui.design.RowDot
 import com.nocturne.learn.ui.theme.NocturneColors
+import com.nocturne.learn.ui.util.rememberAppVersion
 
 @Composable
 fun ProfileScreen(
@@ -49,6 +50,7 @@ fun ProfileScreen(
     var showPlanEditor by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
     val activeProvider = settings.activeProvider
+    val appVersion = rememberAppVersion()
 
     Column(
         modifier = Modifier
@@ -108,7 +110,7 @@ fun ProfileScreen(
             SettingRow(
                 title = "关于夜航",
                 onClick = { showAbout = true },
-                subtitle = "版本 0.1.0",
+                subtitle = "版本 $appVersion",
             )
         }
 
@@ -218,6 +220,7 @@ private fun PlanEditorDialog(
 
 @Composable
 private fun AboutDialog(onDismiss: () -> Unit) {
+    val appVersion = rememberAppVersion()
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = NocturneColors.Night900,
@@ -234,7 +237,7 @@ private fun AboutDialog(onDismiss: () -> Unit) {
         text = {
             Column {
                 Text(
-                    text = "版本 0.1.0",
+                    text = "版本 $appVersion",
                     style = MaterialTheme.typography.bodySmall,
                     color = NocturneColors.TextTertiary,
                 )
