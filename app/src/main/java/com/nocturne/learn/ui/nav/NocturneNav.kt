@@ -20,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -29,6 +30,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.nocturne.learn.AppViewModel
+import com.nocturne.learn.SessionViewModel
 import com.nocturne.learn.data.ProviderTemplates
 import com.nocturne.learn.ui.components.NocturneBottomBar
 import com.nocturne.learn.ui.components.TabDestination
@@ -40,6 +42,7 @@ import com.nocturne.learn.ui.screens.ProfileScreen
 import com.nocturne.learn.ui.screens.ProviderEditorScreen
 import com.nocturne.learn.ui.screens.ProviderListScreen
 import com.nocturne.learn.ui.screens.ReviewScreen
+import com.nocturne.learn.ui.screens.SessionScreen
 import com.nocturne.learn.ui.theme.NocturneColors
 
 private val tabs = listOf(
@@ -52,6 +55,7 @@ private val tabs = listOf(
 @Composable
 fun NocturneNav(viewModel: AppViewModel) {
     val settings by viewModel.settings.collectAsState()
+    val learning by viewModel.learningState.collectAsState()
     val current = settings
 
     if (current == null) {
@@ -87,17 +91,46 @@ fun NocturneNav(viewModel: AppViewModel) {
             composable(Routes.HOME) {
                 HomeScreen(
                     settings = current,
+                    learning = learning,
                     onConfigureModel = { navController.navigate(Routes.API_PROVIDERS) },
                     onOpenMap = { navController.navigateTab(Routes.MAP) },
+                    onStartSession = {
+                        if (current.activeProvider != null) {
+                            navController.navigate(Routes.SESSION)
+                        } else {
+                            navController.navigate(Routes.API_PROVIDERS)
+                        }
+                    },
+                )
+            }
+
+            composable(Routes.SESSION) {
+                val sessionViewModel: SessionViewModel = viewModel()
+                SessionScreen(
+                    viewModel = sessionViewModel,
+                    onBack = { navController.popBackStack() },
                 )
             }
 
             composable(Routes.MAP) {
-                MapScreen(onBackHome = { navController.navigateTab(Routes.HOME) })
+                MapScreen(
+                    learning = learning,
+                    onBackHome = { navController.navigateTab(Routes.HOME) },
+                )
             }
 
             composable(Routes.REVIEW) {
-                ReviewScreen(onBackHome = { navController.navigateTab(Routes.HOME) })
+                ReviewScreen(
+                    learning = learning,
+                    onStartSession = {
+                        if (current.activeProvider != null) {
+                            navController.navigate(Routes.SESSION)
+                        } else {
+                            navController.navigate(Routes.API_PROVIDERS)
+                        }
+                    },
+                    onBackHome = { navController.navigateTab(Routes.HOME) },
+                )
             }
 
             composable(Routes.PROFILE) {

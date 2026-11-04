@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.nocturne.learn.data.AppSettings
 import com.nocturne.learn.data.ConnectionResult
 import com.nocturne.learn.data.ProviderConfig
+import com.nocturne.learn.data.learning.LearningState
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -15,17 +16,26 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private val container = (application as NocturneApp).container
     private val repository = container.settingsRepository
+    private val learning = container.learningRepository
 
     /** null 表示 DataStore 尚未读出第一帧。 */
     val settings: StateFlow<AppSettings?> = repository.settings
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
+    val learningState: StateFlow<LearningState> = learning.state
+
     fun completeOnboarding(goal: String, dailyMinutes: Int) {
-        viewModelScope.launch { repository.completeOnboarding(goal, dailyMinutes) }
+        viewModelScope.launch {
+            repository.completeOnboarding(goal, dailyMinutes)
+            learning.update { it.copy(goal = goal.trim()) }
+        }
     }
 
     fun updatePlan(goal: String, dailyMinutes: Int) {
-        viewModelScope.launch { repository.updatePlan(goal, dailyMinutes) }
+        viewModelScope.launch {
+            repository.updatePlan(goal, dailyMinutes)
+            learning.update { it.copy(goal = goal.trim()) }
+        }
     }
 
     fun saveProvider(provider: ProviderConfig, apiKey: String?, makeActive: Boolean = false) {

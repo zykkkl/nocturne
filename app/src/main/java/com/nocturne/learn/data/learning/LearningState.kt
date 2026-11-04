@@ -1,0 +1,60 @@
+package com.nocturne.learn.data.learning
+
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class KnowledgePoint(
+    val id: String,
+    val title: String,
+    val note: String = "",
+    /** 0f ~ 1f */
+    val mastery: Float = 0f,
+    val status: String = "new",
+    val updatedAt: Long = 0L,
+)
+
+@Serializable
+data class ReviewItem(
+    val id: String,
+    val kpId: String,
+    val dueAt: Long,
+    val intervalDays: Int = 1,
+    val reps: Int = 0,
+)
+
+@Serializable
+data class LearningState(
+    val goal: String = "",
+    val plan: String = "",
+    val level: String = "",
+    val knowledgePoints: List<KnowledgePoint> = emptyList(),
+    val reviews: List<ReviewItem> = emptyList(),
+    val notes: List<String> = emptyList(),
+    val sessions: Int = 0,
+    val streak: Int = 0,
+    val lastStudyEpochDay: Long = 0L,
+    val totalMinutes: Int = 0,
+) {
+
+    fun masteredCount(): Int = knowledgePoints.count { it.mastery >= 0.8f }
+
+    fun learningCount(): Int = knowledgePoints.count { it.mastery < 0.8f && it.mastery > 0f }
+
+    fun dueReviews(now: Long = System.currentTimeMillis()): List<ReviewItem> =
+        reviews.filter { it.dueAt <= now }
+
+    fun dueCount(now: Long = System.currentTimeMillis()): Int = dueReviews(now).size
+
+    fun findPoint(title: String): KnowledgePoint? {
+        val key = title.trim().lowercase()
+        return knowledgePoints.firstOrNull { it.title.trim().lowercase() == key }
+    }
+
+    fun knowledgePointById(id: String): KnowledgePoint? = knowledgePoints.firstOrNull { it.id == id }
+
+    fun nextTarget(): KnowledgePoint? {
+        val dueIds = dueReviews().map { it.kpId }.toSet()
+        return knowledgePoints.firstOrNull { it.id in dueIds }
+            ?: knowledgePoints.minByOrNull { it.mastery }
+    }
+}

@@ -24,3 +24,5 @@ captures/
 
 # Local
 screenshots/
+tools/mock_requests.jsonl
+ui.xml

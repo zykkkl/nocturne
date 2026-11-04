@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.nocturne.learn.data.AppSettings
 import com.nocturne.learn.data.ProviderConfig
+import com.nocturne.learn.data.learning.LearningState
 import com.nocturne.learn.ui.components.Hairline
 import com.nocturne.learn.ui.components.StatBlock
 import com.nocturne.learn.ui.design.ChampagneButton
@@ -44,8 +45,10 @@ import java.util.Locale
 @Composable
 fun HomeScreen(
     settings: AppSettings,
+    learning: LearningState,
     onConfigureModel: () -> Unit,
     onOpenMap: () -> Unit,
+    onStartSession: () -> Unit,
 ) {
     val provider = settings.activeProvider
     val dateText = remember {
@@ -97,15 +100,29 @@ fun HomeScreen(
             }
         }
 
-        item { JarvisCard(provider = provider, onConfigureModel = onConfigureModel) }
+        item {
+            JarvisCard(
+                provider = provider,
+                learning = learning,
+                onConfigureModel = onConfigureModel,
+            )
+        }
 
-        item { TodayCard(dailyMinutes = settings.dailyMinutes) }
+        item {
+            TodayCard(
+                dailyMinutes = settings.dailyMinutes,
+                learning = learning,
+                providerReady = provider != null,
+                onStartSession = onStartSession,
+                onConfigureModel = onConfigureModel,
+            )
+        }
 
-        item { MapTeaser(onOpenMap = onOpenMap) }
+        item { MapTeaser(learning = learning, onOpenMap = onOpenMap) }
 
         item {
             Text(
-                text = "夜航 · 0.1.0",
+                text = "夜航 · 0.2.0",
                 style = MaterialTheme.typography.labelSmall,
                 color = NocturneColors.TextTertiary,
                 modifier = Modifier.padding(start = 4.dp, top = 6.dp),
@@ -117,8 +134,20 @@ fun HomeScreen(
 @Composable
 private fun JarvisCard(
     provider: ProviderConfig?,
+    learning: LearningState,
     onConfigureModel: () -> Unit,
 ) {
+    val due = learning.dueCount()
+    val line = when {
+        provider == null -> "夜航需要一个大模型来思考。填入你自己的 API Key，它就会成为你的私人导师。"
+        learning.knowledgePoints.isEmpty() -> "我在这里。先做一次诊断，弄清你已经会什么，再决定从哪一颗星出发。"
+        due > 0 -> "有 $due 个知识点到期了。先把它们还掉，我们再往深处走。"
+        else -> {
+            val target = learning.nextTarget()?.title.orEmpty()
+            "今天可以继续 $target。我会一次只讲一个概念，然后看你亲手做一遍。"
+        }
+    }
+
     GlassSurface {
         Row(verticalAlignment = Alignment.CenterVertically) {
             JarvisOrb(diameter = 46.dp, active = provider != null)
@@ -140,11 +169,7 @@ private fun JarvisCard(
         }
         Spacer(Modifier.height(14.dp))
         Text(
-            text = if (provider == null) {
-                "夜航需要一个大模型来思考。填入你自己的 API Key，它就会成为你的私人导师。"
-            } else {
-                "我在这里。下一次学习，我会先弄清你已经会什么，再决定我们从哪一颗星出发。"
-            },
+            text = line,
             style = MaterialTheme.typography.bodyMedium,
             color = NocturneColors.TextSecondary,
         )
@@ -178,25 +203,46 @@ private fun JarvisCard(
 }
 
 @Composable
-private fun TodayCard(dailyMinutes: Int) {
+private fun TodayCard(
+    dailyMinutes: Int,
+    learning: LearningState,
+    providerReady: Boolean,
+    onStartSession: () -> Unit,
+    onConfigureModel: () -> Unit,
+) {
+    val due = learning.dueCount()
+    val total = learning.knowledgePoints.size
+    val mastered = learning.masteredCount()
+    val progress = if (total == 0) 0f else mastered.toFloat() / total
+    val title = when {
+        total == 0 -> "尚未启航"
+        due > 0 -> "先还 $due 笔旧账"
+        else -> learning.nextTarget()?.title ?: "继续学习"
+    }
+    val subtitle = when {
+        total == 0 -> "计划每天 $dailyMinutes 分钟，首航从诊断开始。"
+        due > 0 -> "到期复习优先，预计 $dailyMinutes 分钟内完成。"
+        else -> "下一次学习，一次点亮一颗星。"
+    }
+
     GlassSurface {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 SectionLabel("今日航线")
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "尚未启航",
+                    text = title,
                     style = MaterialTheme.typography.headlineSmall,
                     color = Color.White,
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    text = "计划每天 $dailyMinutes 分钟，首航从诊断开始。",
+                    text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
                     color = NocturneColors.TextSecondary,
                 )
             }
-            ProgressRing(progress = 0f, diameter = 78.dp, caption = "今日")
+            ProgressRing(progress = progress, diameter = 78.dp, caption = "掌握")
         }
         Spacer(Modifier.height(16.dp))
         Hairline()
@@ -205,16 +251,35 @@ private fun TodayCard(dailyMinutes: Int) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            StatBlock(label = "连续学习", value = "0", unit = "天", modifier = Modifier.weight(1f))
-            StatBlock(label = "掌握知识点", value = "0", unit = "个", modifier = Modifier.weight(1f))
-            StatBlock(label = "待复习", value = "0", unit = "项", modifier = Modifier.weight(1f))
+            StatBlock(label = "连续学习", value = "${learning.streak}", unit = "天", modifier = Modifier.weight(1f))
+            StatBlock(label = "掌握知识点", value = "$mastered", unit = "个", modifier = Modifier.weight(1f))
+            StatBlock(label = "待复习", value = "$due", unit = "项", modifier = Modifier.weight(1f))
+        }
+        Spacer(Modifier.height(16.dp))
+        if (providerReady) {
+            ChampagneButton(
+                text = if (total == 0) "开始诊断" else if (due > 0) "开始复习" else "继续学习",
+                onClick = onStartSession,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        } else {
+            GhostButton(
+                text = "先接入模型",
+                onClick = onConfigureModel,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 }
 
 @Composable
-private fun MapTeaser(onOpenMap: () -> Unit) {
+private fun MapTeaser(
+    learning: LearningState,
+    onOpenMap: () -> Unit,
+) {
     val shape = RoundedCornerShape(26.dp)
+    val total = learning.knowledgePoints.size
+    val mastered = learning.masteredCount()
     GlassSurface(
         modifier = Modifier
             .clip(shape)
@@ -225,13 +290,13 @@ private fun MapTeaser(onOpenMap: () -> Unit) {
                 SectionLabel("知识星图")
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "0 个知识点在等你点亮",
+                    text = if (total == 0) "还没有星图" else "$mastered / $total 颗星已经点亮",
                     style = MaterialTheme.typography.titleMedium,
                     color = Color.White,
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "每掌握一个知识点，就多一颗星。",
+                    text = if (total == 0) "完成诊断后，AI 会把目标拆成知识点。" else "每掌握一个知识点，就多一颗星。",
                     style = MaterialTheme.typography.bodySmall,
                     color = NocturneColors.TextSecondary,
                 )
