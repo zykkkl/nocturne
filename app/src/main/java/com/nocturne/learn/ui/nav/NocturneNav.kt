@@ -30,12 +30,14 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.nocturne.learn.AppViewModel
+import com.nocturne.learn.AskViewModel
 import com.nocturne.learn.SessionViewModel
 import com.nocturne.learn.data.ProviderTemplates
 import com.nocturne.learn.ui.components.NocturneBottomBar
 import com.nocturne.learn.ui.components.TabDestination
 import com.nocturne.learn.ui.design.JarvisOrb
 import com.nocturne.learn.ui.screens.HomeScreen
+import com.nocturne.learn.ui.screens.AskScreen
 import com.nocturne.learn.ui.screens.MapScreen
 import com.nocturne.learn.ui.screens.OnboardingScreen
 import com.nocturne.learn.ui.screens.ProfileScreen
@@ -56,6 +58,8 @@ private val tabs = listOf(
 fun NocturneNav(viewModel: AppViewModel) {
     val settings by viewModel.settings.collectAsState()
     val learning by viewModel.learningState.collectAsState()
+    val subjects by viewModel.subjects.collectAsState()
+    val activeSubjectId by viewModel.activeSubjectId.collectAsState()
     val current = settings
 
     if (current == null) {
@@ -92,6 +96,8 @@ fun NocturneNav(viewModel: AppViewModel) {
                 HomeScreen(
                     settings = current,
                     learning = learning,
+                    subjects = subjects,
+                    activeSubjectId = activeSubjectId,
                     onConfigureModel = { navController.navigate(Routes.API_PROVIDERS) },
                     onOpenMap = { navController.navigateTab(Routes.MAP) },
                     onStartSession = {
@@ -101,6 +107,19 @@ fun NocturneNav(viewModel: AppViewModel) {
                             navController.navigate(Routes.API_PROVIDERS)
                         }
                     },
+                    onAsk = { navController.navigate(Routes.ASK) },
+                    onSelectSubject = viewModel::switchSubject,
+                    onCreateSubject = viewModel::createSubject,
+                )
+            }
+
+            composable(Routes.ASK) {
+                val askViewModel: AskViewModel = viewModel()
+                AskScreen(
+                    viewModel = askViewModel,
+                    providerReady = current.activeProvider != null,
+                    onBack = { navController.popBackStack() },
+                    onOpenProviders = { navController.navigate(Routes.API_PROVIDERS) },
                 )
             }
 
@@ -136,8 +155,13 @@ fun NocturneNav(viewModel: AppViewModel) {
             composable(Routes.PROFILE) {
                 ProfileScreen(
                     settings = current,
+                    learning = learning,
+                    subjects = subjects,
+                    activeSubjectId = activeSubjectId,
                     onOpenProviders = { navController.navigate(Routes.API_PROVIDERS) },
                     onUpdatePlan = viewModel::updatePlan,
+                    onSelectSubject = viewModel::switchSubject,
+                    onCreateSubject = viewModel::createSubject,
                 )
             }
 

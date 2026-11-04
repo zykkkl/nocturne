@@ -17,7 +17,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,6 +32,7 @@ import com.nocturne.learn.data.ProviderConfig
 import com.nocturne.learn.data.learning.LearningState
 import com.nocturne.learn.ui.components.Hairline
 import com.nocturne.learn.ui.components.StatBlock
+import com.nocturne.learn.ui.components.SubjectSwitcherSheet
 import com.nocturne.learn.ui.design.ChampagneButton
 import com.nocturne.learn.ui.design.GhostButton
 import com.nocturne.learn.ui.design.GlassSurface
@@ -47,12 +51,18 @@ import java.util.Locale
 fun HomeScreen(
     settings: AppSettings,
     learning: LearningState,
+    subjects: List<LearningState>,
+    activeSubjectId: String?,
     onConfigureModel: () -> Unit,
     onOpenMap: () -> Unit,
     onStartSession: () -> Unit,
+    onAsk: () -> Unit,
+    onSelectSubject: (String) -> Unit,
+    onCreateSubject: (String, Int) -> Unit,
 ) {
     val provider = settings.activeProvider
     val appVersion = rememberAppVersion()
+    var showSubjects by remember { mutableStateOf(false) }
     val dateText = remember {
         LocalDate.now().format(DateTimeFormatter.ofPattern("M 月 d 日 · EEEE", Locale.CHINA))
     }
@@ -87,18 +97,35 @@ fun HomeScreen(
         }
 
         item {
-            GlassSurface(contentPadding = PaddingValues(horizontal = 18.dp, vertical = 16.dp)) {
-                Text(
-                    text = "当前航线",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = NocturneColors.TextTertiary,
-                )
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = settings.goal.ifBlank { "还没有设定航线" },
-                    style = MaterialTheme.typography.titleLarge,
-                    color = Color.White,
-                )
+            val shape = RoundedCornerShape(26.dp)
+            GlassSurface(
+                modifier = Modifier
+                    .clip(shape)
+                    .clickable { showSubjects = true },
+                contentPadding = PaddingValues(horizontal = 18.dp, vertical = 16.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            text = "当前航线",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = NocturneColors.TextTertiary,
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            text = learning.goal.ifBlank { "还没有设定航线" },
+                            style = MaterialTheme.typography.titleLarge,
+                            color = Color.White,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    Text(
+                        text = "切换 ›",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = NocturneColors.ChampagneLight,
+                    )
+                }
             }
         }
 
@@ -112,13 +139,15 @@ fun HomeScreen(
 
         item {
             TodayCard(
-                dailyMinutes = settings.dailyMinutes,
+                dailyMinutes = learning.dailyMinutes,
                 learning = learning,
                 providerReady = provider != null,
                 onStartSession = onStartSession,
                 onConfigureModel = onConfigureModel,
             )
         }
+
+        item { AskCard(onAsk = onAsk) }
 
         item { MapTeaser(learning = learning, onOpenMap = onOpenMap) }
 
@@ -128,6 +157,55 @@ fun HomeScreen(
                 style = MaterialTheme.typography.labelSmall,
                 color = NocturneColors.TextTertiary,
                 modifier = Modifier.padding(start = 4.dp, top = 6.dp),
+            )
+        }
+    }
+
+    if (showSubjects) {
+        SubjectSwitcherSheet(
+            subjects = subjects,
+            activeSubjectId = activeSubjectId,
+            onDismiss = { showSubjects = false },
+            onSelect = {
+                onSelectSubject(it)
+                showSubjects = false
+            },
+            onCreate = { goal, minutes ->
+                onCreateSubject(goal, minutes)
+                showSubjects = false
+            },
+        )
+    }
+}
+
+@Composable
+private fun AskCard(onAsk: () -> Unit) {
+    val shape = RoundedCornerShape(26.dp)
+    GlassSurface(
+        modifier = Modifier
+            .clip(shape)
+            .clickable(onClick = onAsk),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                SectionLabel("追问")
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "有一道题卡住了？",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = "苏格拉底式追问，一次一个问题，不直接给答案。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = NocturneColors.TextSecondary,
+                )
+            }
+            Text(
+                text = "›",
+                style = MaterialTheme.typography.titleLarge,
+                color = NocturneColors.TextTertiary,
             )
         }
     }

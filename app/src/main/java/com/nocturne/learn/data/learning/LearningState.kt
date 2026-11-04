@@ -22,9 +22,12 @@ data class ReviewItem(
     val reps: Int = 0,
 )
 
+/** 一条航线 = 一个学习目标。知识点、复习、坚持天数都只属于这条航线。 */
 @Serializable
 data class LearningState(
+    val id: String = "",
     val goal: String = "",
+    val dailyMinutes: Int = 30,
     val plan: String = "",
     val level: String = "",
     val knowledgePoints: List<KnowledgePoint> = emptyList(),
@@ -57,4 +60,14 @@ data class LearningState(
         return knowledgePoints.firstOrNull { it.id in dueIds }
             ?: knowledgePoints.minByOrNull { it.mastery }
     }
+}
+
+/** 本机保存的全部航线。旧版本只有一个 LearningState，读取时会自动包成一条航线。 */
+@Serializable
+data class LearningArchive(
+    val subjects: List<LearningState> = emptyList(),
+    val activeSubjectId: String? = null,
+) {
+    fun active(): LearningState? =
+        subjects.firstOrNull { it.id == activeSubjectId } ?: subjects.firstOrNull()
 }

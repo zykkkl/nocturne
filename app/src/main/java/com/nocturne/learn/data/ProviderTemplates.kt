@@ -48,6 +48,14 @@ object ProviderTemplates {
             monogram = "KM",
         ),
         ProviderTemplate(
+            id = "minimax",
+            name = "MiniMax",
+            baseUrl = "https://api.minimax.cn/v1",
+            model = "MiniMax-M3.1-Flash",
+            note = "海螺 AI 的模型，国内直连",
+            monogram = "MM",
+        ),
+        ProviderTemplate(
             id = "zhipu",
             name = "智谱 GLM",
             baseUrl = "https://open.bigmodel.cn/api/paas/v4",

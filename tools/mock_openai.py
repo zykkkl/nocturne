@@ -39,6 +39,36 @@ class Handler(BaseHTTPRequestHandler):
 
         messages = payload.get("messages", [])
         last = messages[-1] if messages else {}
+
+        # 追问模块没有 tools，返回一段苏格拉底式引导，便于本地联调。
+        if not payload.get("tools"):
+            message = {
+                "role": "assistant",
+                "content": "先别急着要答案。你还记得题目里最先出现的那个条件吗？"
+                "如果把它圈出来，你觉得下一步该先处理谁？",
+            }
+            response = {
+                "id": "chatcmpl-mock-ask",
+                "object": "chat.completion",
+                "created": int(time.time()),
+                "model": "mock-tutor",
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": message,
+                        "finish_reason": "stop",
+                    }
+                ],
+                "usage": {"prompt_tokens": 10, "completion_tokens": 10, "total_tokens": 20},
+            }
+            body = json.dumps(response, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+
         assistant_tools = {
             call.get("function", {}).get("name")
             for message in messages

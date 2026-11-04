@@ -7,6 +7,7 @@ object Routes {
     const val REVIEW = "review"
     const val PROFILE = "profile"
     const val SESSION = "session"
+    const val ASK = "ask"
 
     const val API_PROVIDERS = "api"
     const val API_NEW = "api/new/{templateId}"

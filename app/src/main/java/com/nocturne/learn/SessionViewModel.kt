@@ -5,7 +5,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.nocturne.learn.ai.ChatTurn
 import com.nocturne.learn.ai.ModelException
-import com.nocturne.learn.data.AppSettings
 import com.nocturne.learn.data.ProviderConfig
 import com.nocturne.learn.data.learning.LearningState
 import java.util.UUID
@@ -57,11 +56,12 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
                 }
                 return@launch
             }
-            learning.markSessionStarted(settings.goal)
+            val subject = learning.state.value
+            learning.markSessionStarted(subject.goal)
             runTurn(
                 provider = provider,
                 apiKey = key,
-                settings = settings,
+                dailyMinutes = subject.dailyMinutes,
                 userText = "开始今天的学习。",
             )
         }
@@ -84,7 +84,7 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
             runTurn(
                 provider = provider,
                 apiKey = key,
-                settings = settings,
+                dailyMinutes = learning.state.value.dailyMinutes,
                 userText = clean,
             )
         }
@@ -93,7 +93,7 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
     private suspend fun runTurn(
         provider: ProviderConfig,
         apiKey: String,
-        settings: AppSettings,
+        dailyMinutes: Int,
         userText: String,
     ) {
         _ui.update { it.copy(thinking = true, error = null) }
@@ -103,7 +103,7 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
                 provider = provider,
                 apiKey = apiKey,
                 history = history.toList(),
-                dailyMinutes = settings.dailyMinutes,
+                dailyMinutes = dailyMinutes,
             )
             history.clear()
             history.addAll(result.history)

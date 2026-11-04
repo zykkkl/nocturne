@@ -1,5 +1,6 @@
 package com.nocturne.learn.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -30,8 +31,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.nocturne.learn.data.AppSettings
+import com.nocturne.learn.data.learning.LearningState
 import com.nocturne.learn.ui.components.Hairline
 import com.nocturne.learn.ui.components.SettingRow
+import com.nocturne.learn.ui.components.SubjectSwitcherSheet
 import com.nocturne.learn.ui.components.TabHeader
 import com.nocturne.learn.ui.design.GhostButton
 import com.nocturne.learn.ui.design.GlassSurface
@@ -44,10 +47,16 @@ import com.nocturne.learn.ui.util.rememberAppVersion
 @Composable
 fun ProfileScreen(
     settings: AppSettings,
+    learning: LearningState,
+    subjects: List<LearningState>,
+    activeSubjectId: String?,
     onOpenProviders: () -> Unit,
     onUpdatePlan: (String, Int) -> Unit,
+    onSelectSubject: (String) -> Unit,
+    onCreateSubject: (String, Int) -> Unit,
 ) {
     var showPlanEditor by remember { mutableStateOf(false) }
+    var showSubjects by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
     val activeProvider = settings.activeProvider
     val appVersion = rememberAppVersion()
@@ -69,27 +78,42 @@ fun ProfileScreen(
         )
         Spacer(Modifier.height(24.dp))
 
-        GlassSurface {
-            Text(
-                text = settings.goal.ifBlank { "未设定航线" },
-                style = MaterialTheme.typography.titleLarge,
-                color = Color.White,
-            )
+        GlassSurface(modifier = Modifier.clickable { showSubjects = true }) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = learning.goal.ifBlank { "未设定航线" },
+                    style = MaterialTheme.typography.titleLarge,
+                    color = Color.White,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    text = "切换",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = NocturneColors.ChampagneLight,
+                )
+            }
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 RowDot(NocturneColors.Champagne.copy(alpha = 0.85f))
                 Text(
-                    text = "  每天 ${settings.dailyMinutes} 分钟",
+                    text = "  每天 ${learning.dailyMinutes} 分钟 · ${learning.masteredCount()}/${learning.knowledgePoints.size} 个知识点",
                     style = MaterialTheme.typography.bodySmall,
                     color = NocturneColors.TextSecondary,
                 )
             }
             Spacer(Modifier.height(16.dp))
-            GhostButton(
-                text = "调整航线",
-                onClick = { showPlanEditor = true },
-                modifier = Modifier.fillMaxWidth(),
-            )
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                GhostButton(
+                    text = "切换目标",
+                    onClick = { showSubjects = true },
+                    modifier = Modifier.weight(1f),
+                )
+                GhostButton(
+                    text = "调整航线",
+                    onClick = { showPlanEditor = true },
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
 
         Spacer(Modifier.height(22.dp))
@@ -139,12 +163,27 @@ fun ProfileScreen(
 
     if (showPlanEditor) {
         PlanEditorDialog(
-            goal = settings.goal,
-            minutes = settings.dailyMinutes,
+            goal = learning.goal,
+            minutes = learning.dailyMinutes,
             onDismiss = { showPlanEditor = false },
             onSave = { goal, minutes ->
                 onUpdatePlan(goal, minutes)
                 showPlanEditor = false
+            },
+        )
+    }
+    if (showSubjects) {
+        SubjectSwitcherSheet(
+            subjects = subjects,
+            activeSubjectId = activeSubjectId,
+            onDismiss = { showSubjects = false },
+            onSelect = {
+                onSelectSubject(it)
+                showSubjects = false
+            },
+            onCreate = { goal, minutes ->
+                onCreateSubject(goal, minutes)
+                showSubjects = false
             },
         )
     }

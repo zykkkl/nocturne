@@ -1,6 +1,7 @@
 package com.nocturne.learn
 
 import android.content.Context
+import com.nocturne.learn.ai.AskEngine
 import com.nocturne.learn.ai.ModelClient
 import com.nocturne.learn.ai.TutorEngine
 import com.nocturne.learn.data.ConnectionTester
@@ -15,4 +16,5 @@ class AppContainer(context: Context) {
     val learningRepository = LearningRepository(context)
     val modelClient = ModelClient()
     val tutorEngine = TutorEngine(modelClient, learningRepository)
+    val askEngine = AskEngine(modelClient)
 }

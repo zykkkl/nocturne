@@ -23,18 +23,38 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     val learningState: StateFlow<LearningState> = learning.state
+    val subjects: StateFlow<List<LearningState>> = learning.subjects
+    val activeSubjectId: StateFlow<String?> = learning.activeSubjectId
 
     fun completeOnboarding(goal: String, dailyMinutes: Int) {
         viewModelScope.launch {
             repository.completeOnboarding(goal, dailyMinutes)
-            learning.update { it.copy(goal = goal.trim()) }
+            learning.createSubject(goal, dailyMinutes)
         }
     }
 
     fun updatePlan(goal: String, dailyMinutes: Int) {
         viewModelScope.launch {
             repository.updatePlan(goal, dailyMinutes)
-            learning.update { it.copy(goal = goal.trim()) }
+            learning.updateActivePlan(goal, dailyMinutes)
+        }
+    }
+
+    fun createSubject(goal: String, dailyMinutes: Int) {
+        viewModelScope.launch {
+            learning.createSubject(goal, dailyMinutes)
+            repository.updatePlan(goal, dailyMinutes)
+        }
+    }
+
+    fun switchSubject(subjectId: String) {
+        viewModelScope.launch {
+            learning.switchSubject(subjectId)
+            val state = learning.state.value
+            repository.updatePlan(
+                goal = state.goal,
+                dailyMinutes = state.dailyMinutes,
+            )
         }
     }
 
