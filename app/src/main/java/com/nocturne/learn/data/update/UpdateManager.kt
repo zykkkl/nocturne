@@ -7,6 +7,7 @@ import android.os.Build
 import android.provider.Settings
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -59,6 +60,21 @@ class UpdateManager(private val context: Context) {
 
     private val _dialogVisible = MutableStateFlow(false)
     val dialogVisible: StateFlow<Boolean> = _dialogVisible.asStateFlow()
+
+    private var lastAutoCheckAt = 0L
+
+    /** 启动时静默检查；等网络就绪，失败再给一次机会。 */
+    suspend fun autoCheck() {
+        val now = System.currentTimeMillis()
+        if (now - lastAutoCheckAt < AUTO_CHECK_INTERVAL_MS) return
+        lastAutoCheckAt = now
+        delay(1500)
+        check(manual = false)
+        if (_state.value is UpdateState.Idle) {
+            delay(4000)
+            check(manual = false)
+        }
+    }
 
     val currentVersion: String
         get() = runCatching {
@@ -237,5 +253,6 @@ class UpdateManager(private val context: Context) {
     private companion object {
         const val LATEST_RELEASE_API = "https://api.github.com/repos/zykkkl/nocturne/releases/latest"
         const val USER_AGENT = "Nocturne-Android"
+        const val AUTO_CHECK_INTERVAL_MS = 30 * 60 * 1000L
     }
 }

@@ -77,8 +77,10 @@ fun NocturneNav(viewModel: AppViewModel) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
 
-    LaunchedEffect(Unit) {
-        viewModel.checkForUpdates(manual = false)
+    LaunchedEffect(settings?.onboardingDone) {
+        if (settings?.onboardingDone == true) {
+            viewModel.checkForUpdates(manual = false)
+        }
     }
 
     Box(Modifier.fillMaxSize()) {

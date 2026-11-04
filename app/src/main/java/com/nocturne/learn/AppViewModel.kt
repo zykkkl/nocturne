@@ -91,7 +91,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         container.connectionTester.test(baseUrl, apiKey)
 
     fun checkForUpdates(manual: Boolean = false) {
-        viewModelScope.launch { container.updateManager.check(manual) }
+        viewModelScope.launch {
+            if (manual) {
+                container.updateManager.check(manual = true)
+            } else {
+                container.updateManager.autoCheck()
+            }
+        }
     }
 
     fun downloadUpdate() {
