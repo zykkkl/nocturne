@@ -1,10 +1,8 @@
 package com.nocturne.learn.ui.screens
 
 import android.app.Activity
-import android.content.Intent
 import android.graphics.BitmapFactory
 import android.net.Uri
-import android.speech.RecognizerIntent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -157,37 +155,6 @@ fun AskScreen(
         galleryLauncher.launch("image/*")
     }
 
-    val speechLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult(),
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val spoken = result.data
-                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
-                ?.firstOrNull()
-                ?.trim()
-                .orEmpty()
-            if (spoken.isNotEmpty()) {
-                input = if (input.isBlank()) spoken else input.trimEnd() + " " + spoken
-            }
-        }
-    }
-
-    fun startVoice() {
-        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(
-                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM,
-            )
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "zh-CN")
-            putExtra(RecognizerIntent.EXTRA_PROMPT, "说出你的问题")
-            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
-        }
-        runCatching { speechLauncher.launch(intent) }
-            .onFailure {
-                attachError = "没有找到语音识别服务，先手动输入吧。"
-            }
-    }
-
     fun startNewConversation() {
         viewModel.newConversation()
         input = ""
@@ -300,12 +267,6 @@ fun AskScreen(
                 if (providerReady && !ui.thinking) {
                     attachError = null
                     showAttach = true
-                }
-            },
-            onVoice = {
-                if (providerReady && !ui.thinking) {
-                    attachError = null
-                    startVoice()
                 }
             },
         )
@@ -513,7 +474,7 @@ private fun AskIntro(onExample: (String) -> Unit) {
         }
         Spacer(Modifier.height(14.dp))
         Text(
-            text = "把卡住你的那道题、那个概念，或者那句没看懂的话发给我；也可以拍下来、从相册导入，或直接说给我听。我会一次问一个问题，陪你走到自己能说出答案的地方。",
+            text = "把卡住你的那道题、那个概念，或者那句没看懂的话发给我；也可以拍下来，或从相册导入。我会一次问一个问题，陪你走到自己能说出答案的地方。",
             style = MaterialTheme.typography.bodyMedium,
             color = NocturneColors.TextSecondary,
         )
