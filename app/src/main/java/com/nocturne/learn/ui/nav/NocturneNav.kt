@@ -119,6 +119,7 @@ fun NocturneNav(viewModel: AppViewModel) {
                     onAsk = { navController.navigate(Routes.ASK) },
                     onSelectSubject = viewModel::switchSubject,
                     onCreateSubject = viewModel::createSubject,
+                    onDeleteSubject = viewModel::deleteSubject,
                 )
             }
 
@@ -171,6 +172,7 @@ fun NocturneNav(viewModel: AppViewModel) {
                     onUpdatePlan = viewModel::updatePlan,
                     onSelectSubject = viewModel::switchSubject,
                     onCreateSubject = viewModel::createSubject,
+                    onDeleteSubject = viewModel::deleteSubject,
                     updateState = updateState,
                     onCheckForUpdates = { viewModel.checkForUpdates(manual = true) },
                 )

@@ -20,7 +20,7 @@ class AskEngine(private val client: ModelClient) {
         subjectGoal: String,
     ): AskResult {
         val messages = buildList {
-            add(ChatTurn("system", systemPrompt(subjectGoal)))
+            add(ChatTurn("system", systemPrompt(subjectGoal, history.lastOrNull()?.images?.isNotEmpty() == true)))
             addAll(history)
         }
         val reply = client.complete(
@@ -39,7 +39,14 @@ class AskEngine(private val client: ModelClient) {
         )
     }
 
-    private fun systemPrompt(subjectGoal: String): String = """
+    private fun systemPrompt(subjectGoal: String, hasImage: Boolean): String {
+        val imageRules = if (hasImage) {
+            "\n## 图片\n学生发来了一张图片（可能是题目、笔记或截图）。先读懂图片里明确写出的条件，再提出第一个问题。\n" +
+                "只使用图里看得清的信息；看不清的地方直接请学生确认，不要凭空补全题目。"
+        } else {
+            ""
+        }
+        return """
         你是「夜航」的追问向导。学生带着一个具体问题来，你只做一件事：用苏格拉底式提问，帮他自己想通。
 
         ## 铁律
@@ -55,5 +62,7 @@ class AskEngine(private val client: ModelClient) {
         ## 上下文
         学生当前的学习目标：${subjectGoal.ifBlank { "未填写（这不影响你回答这个问题）" }}
         这个目标只作参考。学生问什么，就围绕什么，不要强行拉回课程。
-    """.trimIndent()
+        $imageRules
+        """.trimIndent()
+    }
 }

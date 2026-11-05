@@ -58,8 +58,10 @@ fun SubjectSwitcherSheet(
     onDismiss: () -> Unit,
     onSelect: (String) -> Unit,
     onCreate: (String, Int) -> Unit,
+    onDelete: (String) -> Unit,
 ) {
     var showCreate by remember { mutableStateOf(false) }
+    var pendingDelete by remember { mutableStateOf<LearningState?>(null) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -114,6 +116,7 @@ fun SubjectSwitcherSheet(
                                 onSelect(subject.id)
                                 onDismiss()
                             },
+                            onDelete = { pendingDelete = subject },
                         )
                     }
                 }
@@ -138,6 +141,45 @@ fun SubjectSwitcherSheet(
             },
         )
     }
+
+    pendingDelete?.let { subject ->
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            containerColor = NocturneColors.Night900,
+            titleContentColor = Color.White,
+            textContentColor = NocturneColors.TextSecondary,
+            shape = RoundedCornerShape(26.dp),
+            title = {
+                Text(
+                    text = "删除「${subject.goal.ifBlank { "未命名航线" }}」？",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = Color.White,
+                )
+            },
+            text = {
+                Text(
+                    text = "它的知识点、掌握度与复习记录都会一起删除，且无法恢复。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = NocturneColors.TextSecondary,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDelete(subject.id)
+                        pendingDelete = null
+                    },
+                ) {
+                    Text("删除", color = NocturneColors.ChampagneLight)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDelete = null }) {
+                    Text("取消", color = NocturneColors.TextTertiary)
+                }
+            },
+        )
+    }
 }
 
 @Composable
@@ -145,6 +187,7 @@ private fun SubjectRow(
     subject: LearningState,
     active: Boolean,
     onClick: () -> Unit,
+    onDelete: () -> Unit,
 ) {
     val due = subject.dueCount()
     Row(
@@ -189,6 +232,16 @@ private fun SubjectRow(
                 overflow = TextOverflow.Ellipsis,
             )
         }
+        Spacer(Modifier.width(10.dp))
+        Text(
+            text = "删除",
+            style = MaterialTheme.typography.labelSmall,
+            color = NocturneColors.TextTertiary,
+            modifier = Modifier
+                .clip(RoundedCornerShape(50))
+                .clickable(onClick = onDelete)
+                .padding(horizontal = 9.dp, vertical = 7.dp),
+        )
     }
 }
 

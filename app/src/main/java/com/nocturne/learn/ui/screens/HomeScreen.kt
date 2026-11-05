@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import com.nocturne.learn.data.AppSettings
 import com.nocturne.learn.data.ProviderConfig
 import com.nocturne.learn.data.learning.LearningState
+import com.nocturne.learn.ui.components.EmptyState
 import com.nocturne.learn.ui.components.Hairline
 import com.nocturne.learn.ui.components.StatBlock
 import com.nocturne.learn.ui.components.SubjectSwitcherSheet
@@ -59,12 +60,36 @@ fun HomeScreen(
     onAsk: () -> Unit,
     onSelectSubject: (String) -> Unit,
     onCreateSubject: (String, Int) -> Unit,
+    onDeleteSubject: (String) -> Unit,
 ) {
     val provider = settings.activeProvider
     val appVersion = rememberAppVersion()
     var showSubjects by remember { mutableStateOf(false) }
     val dateText = remember {
         LocalDate.now().format(DateTimeFormatter.ofPattern("M 月 d 日 · EEEE", Locale.CHINA))
+    }
+
+    if (subjects.isEmpty()) {
+        EmptyHome(
+            greeting = greetingForNow(),
+            dateText = dateText,
+            appVersion = appVersion,
+            onCreate = { showSubjects = true },
+        )
+        if (showSubjects) {
+            SubjectSwitcherSheet(
+                subjects = emptyList(),
+                activeSubjectId = null,
+                onDismiss = { showSubjects = false },
+                onSelect = {},
+                onCreate = { goal, minutes ->
+                    onCreateSubject(goal, minutes)
+                    showSubjects = false
+                },
+                onDelete = {},
+            )
+        }
+        return
     }
 
     LazyColumn(
@@ -174,6 +199,55 @@ fun HomeScreen(
                 onCreateSubject(goal, minutes)
                 showSubjects = false
             },
+            onDelete = { id -> onDeleteSubject(id) },
+        )
+    }
+}
+
+@Composable
+private fun EmptyHome(
+    greeting: String,
+    dateText: String,
+    appVersion: String,
+    onCreate: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .padding(horizontal = 24.dp),
+    ) {
+        Spacer(Modifier.height(18.dp))
+        Text(
+            text = "NOCTURNE · 夜航",
+            style = MaterialTheme.typography.labelSmall,
+            color = NocturneColors.TextTertiary,
+        )
+        Spacer(Modifier.height(10.dp))
+        Text(
+            text = greeting,
+            style = MaterialTheme.typography.displaySmall,
+            color = Color.White,
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = dateText,
+            style = MaterialTheme.typography.bodySmall,
+            color = NocturneColors.TextTertiary,
+        )
+        Spacer(Modifier.height(26.dp))
+        EmptyState(
+            title = "还没有学习目标",
+            body = "夜航需要一条航线才知道往哪里走。建一个目标，AI 会先做诊断，再拆出知识点。",
+            actionText = "建立第一条航线",
+            onAction = onCreate,
+        )
+        Spacer(Modifier.weight(1f))
+        Text(
+            text = "夜航 · $appVersion",
+            style = MaterialTheme.typography.labelSmall,
+            color = NocturneColors.TextTertiary,
+            modifier = Modifier.padding(start = 4.dp, bottom = 130.dp),
         )
     }
 }

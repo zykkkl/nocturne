@@ -1,23 +1,28 @@
 package com.nocturne.learn
 
 import android.app.Application
+import android.util.Base64
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.nocturne.learn.ai.ChatTurn
 import com.nocturne.learn.ai.ModelException
+import java.io.File
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class AskMessage(
     val id: String = UUID.randomUUID().toString(),
     val fromUser: Boolean,
     val text: String,
+    val imagePath: String? = null,
 )
 
 data class AskUiState(
@@ -37,9 +42,10 @@ class AskViewModel(application: Application) : AndroidViewModel(application) {
 
     private val history = mutableListOf<ChatTurn>()
 
-    fun ask(text: String) {
+    fun ask(text: String, imagePath: String? = null) {
         val clean = text.trim()
-        if (clean.isEmpty() || _ui.value.thinking) return
+        if (clean.isEmpty() && imagePath == null) return
+        if (_ui.value.thinking) return
         viewModelScope.launch {
             val settings = settingsRepository.settings.first()
             val provider = settings.activeProvider
@@ -48,14 +54,39 @@ class AskViewModel(application: Application) : AndroidViewModel(application) {
                 _ui.update { it.copy(error = "还没有接入模型。先回到今日页，接入一个模型再问。") }
                 return@launch
             }
+            val imageData = try {
+                imagePath?.let { path ->
+                    withContext(Dispatchers.IO) {
+                        val bytes = File(path).readBytes()
+                        if (bytes.isEmpty()) throw IllegalStateException("图片为空")
+                        if (bytes.size > 4 * 1024 * 1024) {
+                            throw IllegalStateException("图片太大，请重新选择")
+                        }
+                        "data:image/jpeg;base64," +
+                            Base64.encodeToString(bytes, Base64.NO_WRAP)
+                    }
+                }
+            } catch (error: Throwable) {
+                _ui.update { it.copy(error = "图片没有读出来 · ${error.message ?: "未知错误"}") }
+                return@launch
+            }
+            val modelText = clean.ifBlank { "请看我发的这张图片。" }
             _ui.update {
                 it.copy(
-                    messages = it.messages + AskMessage(fromUser = true, text = clean),
+                    messages = it.messages + AskMessage(
+                        fromUser = true,
+                        text = clean,
+                        imagePath = imagePath,
+                    ),
                     thinking = true,
                     error = null,
                 )
             }
-            history += ChatTurn("user", clean)
+            history += ChatTurn(
+                role = "user",
+                content = modelText,
+                images = listOfNotNull(imageData),
+            )
             try {
                 val result = engine.respond(
                     provider = provider,

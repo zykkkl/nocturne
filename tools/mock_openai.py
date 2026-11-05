@@ -11,6 +11,20 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 LOG = "tools/mock_requests.jsonl"
 
 
+def redact_images(value):
+    """日志里不要把 base64 图片整段写进去。"""
+    if isinstance(value, list):
+        return [
+            {"type": item.get("type"), "image_url": {"url": "[image]"}}
+            if isinstance(item, dict) and item.get("type") == "image_url"
+            else redact_images(item)
+            for item in value
+        ]
+    if isinstance(value, dict):
+        return {key: redact_images(item) for key, item in value.items()}
+    return value
+
+
 def tool_call(name, args, call_id):
     return {
         "id": call_id,
@@ -35,17 +49,26 @@ class Handler(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length", 0))
         payload = json.loads(self.rfile.read(length) or b"{}")
         with open(LOG, "a", encoding="utf-8") as log:
-            log.write(json.dumps(payload, ensure_ascii=False) + "\n")
+            log.write(json.dumps(redact_images(payload), ensure_ascii=False) + "\n")
 
         messages = payload.get("messages", [])
         last = messages[-1] if messages else {}
 
         # 追问模块没有 tools，返回一段苏格拉底式引导，便于本地联调。
         if not payload.get("tools"):
+            content = last.get("content")
+            has_image = isinstance(content, list) and any(
+                isinstance(part, dict) and part.get("type") == "image_url"
+                for part in content
+            )
             message = {
                 "role": "assistant",
-                "content": "先别急着要答案。你还记得题目里最先出现的那个条件吗？"
-                "如果把它圈出来，你觉得下一步该先处理谁？",
+                "content": (
+                    "我看到你发来的图片了。先不急着算——你觉得题目里哪一个条件最关键？"
+                    if has_image
+                    else "先别急着要答案。你还记得题目里最先出现的那个条件吗？"
+                    "如果把它圈出来，你觉得下一步该先处理谁？"
+                ),
             }
             response = {
                 "id": "chatcmpl-mock-ask",

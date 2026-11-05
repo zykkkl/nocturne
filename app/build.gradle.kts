@@ -26,8 +26,8 @@ android {
         applicationId = "com.nocturne.learn"
         minSdk = 26
         targetSdk = 35
-        versionCode = providers.gradleProperty("versionCode").map(String::toInt).orElse(5).get()
-        versionName = providers.gradleProperty("versionName").orElse("0.4.1").get()
+        versionCode = providers.gradleProperty("versionCode").map(String::toInt).orElse(6).get()
+        versionName = providers.gradleProperty("versionName").orElse("0.5.0").get()
         vectorDrawables { useSupportLibrary = true }
     }
 
@@ -97,6 +97,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-core")
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
 
     implementation("androidx.navigation:navigation-compose:2.8.5")
     implementation("androidx.datastore:datastore-preferences:1.1.1")

@@ -19,12 +19,19 @@ import java.io.File
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
+enum class UpdateKind(val label: String) {
+    PATCH("小更新"),
+    MINOR("功能更新"),
+    MAJOR("大版本更新"),
+}
+
 data class UpdateInfo(
     val version: String,
     val notes: String,
     val apkUrl: String,
     val pageUrl: String,
     val sizeBytes: Long,
+    val kind: UpdateKind,
 )
 
 sealed interface UpdateState {
@@ -61,6 +68,8 @@ class UpdateManager(private val context: Context) {
     private val _dialogVisible = MutableStateFlow(false)
     val dialogVisible: StateFlow<Boolean> = _dialogVisible.asStateFlow()
 
+    private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
     private var lastAutoCheckAt = 0L
 
     /** 启动时静默检查；等网络就绪，失败再给一次机会。 */
@@ -93,7 +102,11 @@ class UpdateManager(private val context: Context) {
             val latest = withContext(Dispatchers.IO) { fetchLatest() }
             if (latest != null && isNewer(latest.version, currentVersion)) {
                 _state.value = UpdateState.Available(latest)
-                _dialogVisible.value = true
+                // 小更新只在「我的」里留一个提示；功能更新/大版本才主动弹窗。
+                // 用户点过「稍后」的版本，自动检查不再打扰，手动检查仍会显示。
+                _dialogVisible.value = manual ||
+                    (latest.kind != UpdateKind.PATCH &&
+                        prefs.getString(KEY_DISMISSED_VERSION, null) != latest.version)
             } else {
                 _state.value = if (manual) {
                     UpdateState.UpToDate(currentVersion)
@@ -188,6 +201,14 @@ class UpdateManager(private val context: Context) {
     }
 
     fun dismiss() {
+        val info = when (val state = _state.value) {
+            is UpdateState.Available -> state.info
+            is UpdateState.Ready -> state.info
+            else -> null
+        }
+        if (info != null) {
+            prefs.edit().putString(KEY_DISMISSED_VERSION, info.version).apply()
+        }
         _dialogVisible.value = false
     }
 
@@ -222,7 +243,19 @@ class UpdateManager(private val context: Context) {
                 apkUrl = apkUrl,
                 pageUrl = json.optString("html_url"),
                 sizeBytes = size,
+                kind = classify(version, currentVersion),
             )
+        }
+    }
+
+    private fun classify(latest: String, current: String): UpdateKind {
+        if (current.isBlank()) return UpdateKind.MINOR
+        val a = versionParts(latest)
+        val b = versionParts(current)
+        return when {
+            a.getOrElse(0) { 0 } > b.getOrElse(0) { 0 } -> UpdateKind.MAJOR
+            a.getOrElse(1) { 0 } > b.getOrElse(1) { 0 } -> UpdateKind.MINOR
+            else -> UpdateKind.PATCH
         }
     }
 
@@ -253,6 +286,8 @@ class UpdateManager(private val context: Context) {
     private companion object {
         const val LATEST_RELEASE_API = "https://api.github.com/repos/zykkkl/nocturne/releases/latest"
         const val USER_AGENT = "Nocturne-Android"
-        const val AUTO_CHECK_INTERVAL_MS = 30 * 60 * 1000L
+        const val PREFS_NAME = "update_prefs"
+        const val KEY_DISMISSED_VERSION = "dismissed_version"
+        const val AUTO_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000L
     }
 }

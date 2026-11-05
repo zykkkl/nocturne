@@ -62,6 +62,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun deleteSubject(subjectId: String) {
+        viewModelScope.launch {
+            learning.deleteSubject(subjectId)
+            val state = learning.state.value
+            repository.updatePlan(
+                goal = state.goal,
+                dailyMinutes = state.dailyMinutes,
+            )
+        }
+    }
+
     fun saveProvider(provider: ProviderConfig, apiKey: String?, makeActive: Boolean = false) {
         viewModelScope.launch {
             repository.saveProvider(provider)

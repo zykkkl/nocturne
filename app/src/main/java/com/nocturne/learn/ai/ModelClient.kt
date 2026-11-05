@@ -29,6 +29,8 @@ data class ChatTurn(
     val content: String = "",
     val toolCalls: List<ToolCall> = emptyList(),
     val toolCallId: String? = null,
+    /** data:image/jpeg;base64,...，仅 user 消息使用。 */
+    val images: List<String> = emptyList(),
 )
 
 data class ToolCall(
@@ -169,7 +171,26 @@ class ModelClient(
                 put("content", content)
             }
 
-            else -> put("content", content)
+            else -> {
+                if (images.isEmpty()) {
+                    put("content", content)
+                } else {
+                    put("content", buildJsonArray {
+                        if (content.isNotBlank()) {
+                            add(buildJsonObject {
+                                put("type", "text")
+                                put("text", content)
+                            })
+                        }
+                        images.forEach { url ->
+                            add(buildJsonObject {
+                                put("type", "image_url")
+                                put("image_url", buildJsonObject { put("url", url) })
+                            })
+                        }
+                    })
+                }
+            }
         }
     }
 

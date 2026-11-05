@@ -85,6 +85,19 @@ class LearningRepository(
         }
     }
 
+    /** 删除一条航线，连同它的知识点、复习记录与笔记一起消失。 */
+    fun deleteSubject(subjectId: String) = synchronized(lock) {
+        val archive = _archive.value
+        val remaining = archive.subjects.filterNot { it.id == subjectId }
+        if (remaining.size == archive.subjects.size) return@synchronized
+        val nextActiveId = when {
+            archive.activeSubjectId != subjectId ->
+                archive.activeSubjectId?.takeIf { id -> remaining.any { it.id == id } }
+            else -> remaining.firstOrNull()?.id
+        }
+        publish(archive.copy(subjects = remaining, activeSubjectId = nextActiveId))
+    }
+
     fun updateActivePlan(goal: String, dailyMinutes: Int) = synchronized(lock) {
         val (archive, active) = ensureActive(_archive.value)
         val next = active.copy(

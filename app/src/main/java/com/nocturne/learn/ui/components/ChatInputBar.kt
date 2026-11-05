@@ -44,6 +44,8 @@ fun ChatInputBar(
     onSend: () -> Unit,
     modifier: Modifier = Modifier,
     placeholder: String = "回答，或者问一个问题…",
+    onAttach: (() -> Unit)? = null,
+    hasAttachment: Boolean = false,
 ) {
     Column(
         modifier = modifier
@@ -57,6 +59,24 @@ fun ChatInputBar(
             contentPadding = PaddingValues(horizontal = 17.dp, vertical = 7.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                if (onAttach != null) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.07f))
+                            .clickable(enabled = enabled, onClick = onAttach),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "＋",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = if (enabled) NocturneColors.TextSecondary
+                            else NocturneColors.TextTertiary,
+                        )
+                    }
+                    Spacer(Modifier.width(9.dp))
+                }
                 BasicTextField(
                     value = value,
                     onValueChange = onValueChange,
@@ -73,7 +93,7 @@ fun ChatInputBar(
                     maxLines = 4,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                     keyboardActions = KeyboardActions(
-                        onSend = { if (value.isNotBlank()) onSend() },
+                        onSend = { if (enabled && (value.isNotBlank() || hasAttachment)) onSend() },
                     ),
                     decorationBox = { inner ->
                         Box(contentAlignment = Alignment.CenterStart) {
@@ -89,7 +109,7 @@ fun ChatInputBar(
                     },
                 )
                 Spacer(Modifier.width(10.dp))
-                val canSend = value.isNotBlank() && enabled
+                val canSend = enabled && (value.isNotBlank() || hasAttachment) && enabled
                 Box(
                     modifier = Modifier
                         .size(40.dp)

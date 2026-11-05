@@ -55,6 +55,7 @@ fun ProfileScreen(
     onUpdatePlan: (String, Int) -> Unit,
     onSelectSubject: (String) -> Unit,
     onCreateSubject: (String, Int) -> Unit,
+    onDeleteSubject: (String) -> Unit,
     updateState: UpdateState,
     onCheckForUpdates: () -> Unit,
 ) {
@@ -81,41 +82,63 @@ fun ProfileScreen(
         )
         Spacer(Modifier.height(24.dp))
 
-        GlassSurface(modifier = Modifier.clickable { showSubjects = true }) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        if (subjects.isEmpty()) {
+            GlassSurface {
                 Text(
-                    text = learning.goal.ifBlank { "未设定航线" },
+                    text = "还没有学习目标",
                     style = MaterialTheme.typography.titleLarge,
                     color = Color.White,
-                    modifier = Modifier.weight(1f),
                 )
+                Spacer(Modifier.height(6.dp))
                 Text(
-                    text = "切换",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = NocturneColors.ChampagneLight,
-                )
-            }
-            Spacer(Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                RowDot(NocturneColors.Champagne.copy(alpha = 0.85f))
-                Text(
-                    text = "  每天 ${learning.dailyMinutes} 分钟 · ${learning.masteredCount()}/${learning.knowledgePoints.size} 个知识点",
+                    text = "建一条航线，夜航才知道该往哪里走。",
                     style = MaterialTheme.typography.bodySmall,
                     color = NocturneColors.TextSecondary,
                 )
-            }
-            Spacer(Modifier.height(16.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Spacer(Modifier.height(14.dp))
                 GhostButton(
-                    text = "切换目标",
+                    text = "建立第一条航线",
                     onClick = { showSubjects = true },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxWidth(),
                 )
-                GhostButton(
-                    text = "调整航线",
-                    onClick = { showPlanEditor = true },
-                    modifier = Modifier.weight(1f),
-                )
+            }
+        } else {
+            GlassSurface(modifier = Modifier.clickable { showSubjects = true }) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = learning.goal.ifBlank { "未设定航线" },
+                        style = MaterialTheme.typography.titleLarge,
+                        color = Color.White,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        text = "切换",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = NocturneColors.ChampagneLight,
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RowDot(NocturneColors.Champagne.copy(alpha = 0.85f))
+                    Text(
+                        text = "  每天 ${learning.dailyMinutes} 分钟 · ${learning.masteredCount()}/${learning.knowledgePoints.size} 个知识点",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = NocturneColors.TextSecondary,
+                    )
+                }
+                Spacer(Modifier.height(16.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    GhostButton(
+                        text = "切换目标",
+                        onClick = { showSubjects = true },
+                        modifier = Modifier.weight(1f),
+                    )
+                    GhostButton(
+                        text = "调整航线",
+                        onClick = { showPlanEditor = true },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
         }
 
@@ -195,6 +218,7 @@ fun ProfileScreen(
                 onCreateSubject(goal, minutes)
                 showSubjects = false
             },
+            onDelete = { id -> onDeleteSubject(id) },
         )
     }
     if (showAbout) {
@@ -205,7 +229,7 @@ fun ProfileScreen(
 private fun updateSubtitle(state: UpdateState, currentVersion: String): String = when (state) {
     is UpdateState.Idle -> "当前版本 $currentVersion"
     is UpdateState.Checking -> "正在检查…"
-    is UpdateState.Available -> "发现 v${state.info.version}，可以下载"
+    is UpdateState.Available -> "发现 v${state.info.version} · ${state.info.kind.label}，可手动更新"
     is UpdateState.Downloading -> "正在下载 v${state.info.version} · ${(state.progress * 100).toInt()}%"
     is UpdateState.Ready -> "v${state.info.version} 已下载，等待安装"
     is UpdateState.UpToDate -> "v${state.version} 已是最新"
