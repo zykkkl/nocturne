@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.nocturne.learn.ai.ChatTurn
 import com.nocturne.learn.ai.ModelException
+import com.nocturne.learn.data.AskImageStore
 import com.nocturne.learn.data.ask.AskConversation
 import com.nocturne.learn.data.ask.AskMessage
 import java.io.File
@@ -47,6 +48,7 @@ class AskViewModel(application: Application) : AndroidViewModel(application) {
                 _ui.update { it.copy(messages = active?.messages.orEmpty()) }
                 if (active?.id != loadedConversationId) {
                     loadedConversationId = active?.id
+                    history.clear()
                     rebuildHistory(active)
                 }
             }
@@ -138,20 +140,43 @@ class AskViewModel(application: Application) : AndroidViewModel(application) {
         historyRepository.clearAll()
     }
 
-    private fun rebuildHistory(conversation: AskConversation?) {
-        history.clear()
-        conversation?.messages?.forEach { message ->
-            if (message.text.isBlank() && message.fromUser) {
-                history += ChatTurn(
-                    role = "user",
-                    content = "我发了一张图片，请根据这张图片继续问我。",
-                )
-            } else if (message.text.isNotBlank()) {
-                history += ChatTurn(
-                    role = if (message.fromUser) "user" else "assistant",
-                    content = message.text,
-                )
+    /**
+     * 从本地历史重建模型上下文。
+     * 只把最近一张图片重新编码上传，避免重启后整个会话的图片都塞进请求。
+     */
+    private suspend fun rebuildHistory(conversation: AskConversation?) {
+        val turns = withContext(Dispatchers.IO) {
+            val latestImagePath = conversation?.messages
+                ?.lastOrNull { it.imagePath != null }
+                ?.imagePath
+            val latestImage = AskImageStore.toDataUrl(latestImagePath)
+            conversation?.messages.orEmpty().mapNotNull { message ->
+                val carriesLatestImage = message.imagePath != null &&
+                    message.imagePath == latestImagePath
+                when {
+                    message.fromUser && message.text.isBlank() && message.imagePath != null -> {
+                        ChatTurn(
+                            role = "user",
+                            content = "我发了一张图片，请根据这张图片继续问我。",
+                            images = if (carriesLatestImage) listOfNotNull(latestImage) else emptyList(),
+                        )
+                    }
+
+                    message.text.isNotBlank() -> {
+                        ChatTurn(
+                            role = if (message.fromUser) "user" else "assistant",
+                            content = message.text,
+                            images = if (carriesLatestImage) listOfNotNull(latestImage) else emptyList(),
+                        )
+                    }
+
+                    else -> null
+                }
             }
+        }
+        if (conversation?.id == loadedConversationId) {
+            history.clear()
+            history.addAll(turns)
         }
     }
 }

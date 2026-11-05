@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.net.Uri
+import android.util.Base64
 import androidx.exifinterface.media.ExifInterface
 import java.io.File
 import java.io.FileOutputStream
@@ -18,6 +19,7 @@ object AskImageStore {
 
     private const val MAX_DIMENSION = 1400
     private const val JPEG_QUALITY = 84
+    private const val MAX_EMBED_BYTES = 4 * 1024 * 1024
     private const val MAX_ORPHAN_AGE_MS = 7L * 24 * 60 * 60 * 1000
 
     fun directory(context: Context): File =
@@ -38,6 +40,21 @@ object AskImageStore {
         scaled.recycle()
         target.absolutePath
     }.getOrNull()
+
+    /**
+     * 把已保存的追问图片编码成 data URL，供重启后重建模型上下文时重新上传。
+     * 读取文件，建议在 IO 线程调用；文件缺失或超过 4MB 时返回 null。
+     */
+    fun toDataUrl(path: String?): String? {
+        if (path.isNullOrBlank()) return null
+        return runCatching {
+            val file = File(path)
+            if (!file.isFile || file.length() > MAX_EMBED_BYTES) return null
+            val bytes = file.readBytes()
+            if (bytes.isEmpty()) return null
+            "data:image/jpeg;base64," + Base64.encodeToString(bytes, Base64.NO_WRAP)
+        }.getOrNull()
+    }
 
     fun delete(path: String?) {
         if (path.isNullOrBlank()) return
