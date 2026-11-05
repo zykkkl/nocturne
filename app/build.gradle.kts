@@ -26,8 +26,8 @@ android {
         applicationId = "com.nocturne.learn"
         minSdk = 26
         targetSdk = 35
-        versionCode = providers.gradleProperty("versionCode").map(String::toInt).orElse(6).get()
-        versionName = providers.gradleProperty("versionName").orElse("0.5.0").get()
+        versionCode = providers.gradleProperty("versionCode").map(String::toInt).orElse(7).get()
+        versionName = providers.gradleProperty("versionName").orElse("0.6.0").get()
         vectorDrawables { useSupportLibrary = true }
     }
 

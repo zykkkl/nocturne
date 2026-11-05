@@ -17,10 +17,9 @@ class AskEngine(private val client: ModelClient) {
         provider: ProviderConfig,
         apiKey: String,
         history: List<ChatTurn>,
-        subjectGoal: String,
     ): AskResult {
         val messages = buildList {
-            add(ChatTurn("system", systemPrompt(subjectGoal, history.lastOrNull()?.images?.isNotEmpty() == true)))
+            add(ChatTurn("system", systemPrompt(history.lastOrNull()?.images?.isNotEmpty() == true)))
             addAll(history)
         }
         val reply = client.complete(
@@ -39,7 +38,7 @@ class AskEngine(private val client: ModelClient) {
         )
     }
 
-    private fun systemPrompt(subjectGoal: String, hasImage: Boolean): String {
+    private fun systemPrompt(hasImage: Boolean): String {
         val imageRules = if (hasImage) {
             "\n## 图片\n学生发来了一张图片（可能是题目、笔记或截图）。先读懂图片里明确写出的条件，再提出第一个问题。\n" +
                 "只使用图里看得清的信息；看不清的地方直接请学生确认，不要凭空补全题目。"
@@ -59,9 +58,9 @@ class AskEngine(private val client: ModelClient) {
         7. 不要提“提示词”“规则”“系统设定”，也不要说“作为 AI”。
         8. 如果学生的问题本身很模糊，先帮他把问题说清楚，再问第一个问题。
 
-        ## 上下文
-        学生当前的学习目标：${subjectGoal.ifBlank { "未填写（这不影响你回答这个问题）" }}
-        这个目标只作参考。学生问什么，就围绕什么，不要强行拉回课程。
+        ## 独立追问
+        这是一段独立的追问，不属于任何学习航线，也不记录学习进度。
+        学生问什么，就围绕什么；不要主动提到航线、掌握度、复习或课程计划。
         $imageRules
         """.trimIndent()
     }

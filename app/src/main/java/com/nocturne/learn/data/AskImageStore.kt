@@ -11,25 +11,22 @@ import java.io.FileOutputStream
 import java.util.UUID
 
 /**
- * 把相册/相机图片压到适合多模态模型的大小，存进 cache。
- * 只保留压缩后的副本，原始图片不会被读取第二次。
+ * 把相册/相机图片压到适合多模态模型的大小，存进 filesDir。
+ * 追问历史需要长期引用图片，所以不用 cacheDir；删除会话时再一起删除。
  */
 object AskImageStore {
 
     private const val MAX_DIMENSION = 1400
     private const val JPEG_QUALITY = 84
-    private const val MAX_AGE_MS = 3L * 24 * 60 * 60 * 1000
+    private const val MAX_ORPHAN_AGE_MS = 7L * 24 * 60 * 60 * 1000
 
     fun directory(context: Context): File =
-        File(context.cacheDir, "ask-images").apply { mkdirs() }
+        File(context.filesDir, "ask-images").apply { mkdirs() }
 
-    fun newCaptureFile(context: Context): File {
-        cleanup(context)
-        return File(directory(context), "capture-${UUID.randomUUID()}.jpg")
-    }
+    fun newCaptureFile(context: Context): File =
+        File(directory(context), "capture-${UUID.randomUUID()}.jpg")
 
     fun prepare(context: Context, uri: Uri): String? = runCatching {
-        cleanup(context)
         val bitmap = decodeSampled(context, uri) ?: return null
         val rotated = rotateByExif(context, uri, bitmap)
         val scaled = scaleDown(rotated, MAX_DIMENSION)
@@ -88,10 +85,16 @@ object AskImageStore {
         )
     }
 
-    private fun cleanup(context: Context) {
-        val cutoff = System.currentTimeMillis() - MAX_AGE_MS
+    /** 删除没有被任何追问会话引用、且放置超过 7 天的图片。 */
+    fun cleanup(context: Context, referenced: Set<String>) {
+        val cutoff = System.currentTimeMillis() - MAX_ORPHAN_AGE_MS
         directory(context).listFiles()?.forEach { file ->
-            if (file.isFile && file.lastModified() < cutoff) file.delete()
+            if (file.isFile &&
+                file.absolutePath !in referenced &&
+                file.lastModified() < cutoff
+            ) {
+                file.delete()
+            }
         }
     }
 }

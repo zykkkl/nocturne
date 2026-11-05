@@ -6,8 +6,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.nocturne.learn.ai.ChatTurn
 import com.nocturne.learn.ai.ModelException
+import com.nocturne.learn.data.ask.AskConversation
+import com.nocturne.learn.data.ask.AskMessage
 import java.io.File
-import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,13 +18,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
-data class AskMessage(
-    val id: String = UUID.randomUUID().toString(),
-    val fromUser: Boolean,
-    val text: String,
-    val imagePath: String? = null,
-)
 
 data class AskUiState(
     val messages: List<AskMessage> = emptyList(),
@@ -35,12 +29,29 @@ class AskViewModel(application: Application) : AndroidViewModel(application) {
 
     private val container = (application as NocturneApp).container
     private val settingsRepository = container.settingsRepository
+    private val historyRepository = container.askHistoryRepository
     private val engine = container.askEngine
+
+    val archive = historyRepository.state
 
     private val _ui = MutableStateFlow(AskUiState())
     val ui: StateFlow<AskUiState> = _ui.asStateFlow()
 
     private val history = mutableListOf<ChatTurn>()
+    private var loadedConversationId: String? = null
+
+    init {
+        viewModelScope.launch {
+            archive.collect { state ->
+                val active = state.active()
+                _ui.update { it.copy(messages = active?.messages.orEmpty()) }
+                if (active?.id != loadedConversationId) {
+                    loadedConversationId = active?.id
+                    rebuildHistory(active)
+                }
+            }
+        }
+    }
 
     fun ask(text: String, imagePath: String? = null) {
         val clean = text.trim()
@@ -71,17 +82,13 @@ class AskViewModel(application: Application) : AndroidViewModel(application) {
                 return@launch
             }
             val modelText = clean.ifBlank { "请看我发的这张图片。" }
-            _ui.update {
-                it.copy(
-                    messages = it.messages + AskMessage(
-                        fromUser = true,
-                        text = clean,
-                        imagePath = imagePath,
-                    ),
-                    thinking = true,
-                    error = null,
-                )
-            }
+            val userMessage = AskMessage(
+                fromUser = true,
+                text = clean,
+                imagePath = imagePath,
+            )
+            _ui.update { it.copy(thinking = true, error = null) }
+            historyRepository.append(userMessage)
             history += ChatTurn(
                 role = "user",
                 content = modelText,
@@ -92,16 +99,13 @@ class AskViewModel(application: Application) : AndroidViewModel(application) {
                     provider = provider,
                     apiKey = key,
                     history = history.toList(),
-                    subjectGoal = container.learningRepository.state.value.goal,
                 )
                 history.clear()
                 history.addAll(result.history)
-                _ui.update {
-                    it.copy(
-                        messages = it.messages + AskMessage(fromUser = false, text = result.reply),
-                        thinking = false,
-                    )
-                }
+                historyRepository.append(
+                    AskMessage(fromUser = false, text = result.reply),
+                )
+                _ui.update { it.copy(thinking = false) }
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Throwable) {
@@ -114,8 +118,40 @@ class AskViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun reset() {
+    fun newConversation() {
+        if (_ui.value.thinking) return
+        historyRepository.newConversation()
+    }
+
+    fun selectConversation(conversationId: String) {
+        if (_ui.value.thinking) return
+        historyRepository.select(conversationId)
+    }
+
+    fun deleteConversation(conversationId: String) {
+        if (_ui.value.thinking) return
+        historyRepository.delete(conversationId)
+    }
+
+    fun clearAllConversations() {
+        if (_ui.value.thinking) return
+        historyRepository.clearAll()
+    }
+
+    private fun rebuildHistory(conversation: AskConversation?) {
         history.clear()
-        _ui.value = AskUiState()
+        conversation?.messages?.forEach { message ->
+            if (message.text.isBlank() && message.fromUser) {
+                history += ChatTurn(
+                    role = "user",
+                    content = "我发了一张图片，请根据这张图片继续问我。",
+                )
+            } else if (message.text.isNotBlank()) {
+                history += ChatTurn(
+                    role = if (message.fromUser) "user" else "assistant",
+                    content = message.text,
+                )
+            }
+        }
     }
 }

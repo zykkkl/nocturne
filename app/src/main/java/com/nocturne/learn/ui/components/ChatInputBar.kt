@@ -1,5 +1,6 @@
 package com.nocturne.learn.ui.components
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -24,8 +25,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -45,6 +51,7 @@ fun ChatInputBar(
     modifier: Modifier = Modifier,
     placeholder: String = "回答，或者问一个问题…",
     onAttach: (() -> Unit)? = null,
+    onVoice: (() -> Unit)? = null,
     hasAttachment: Boolean = false,
 ) {
     Column(
@@ -71,6 +78,22 @@ fun ChatInputBar(
                         Text(
                             text = "＋",
                             style = MaterialTheme.typography.titleMedium,
+                            color = if (enabled) NocturneColors.TextSecondary
+                            else NocturneColors.TextTertiary,
+                        )
+                    }
+                    Spacer(Modifier.width(9.dp))
+                }
+                if (onVoice != null) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.07f))
+                            .clickable(enabled = enabled, onClick = onVoice),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        MicGlyph(
                             color = if (enabled) NocturneColors.TextSecondary
                             else NocturneColors.TextTertiary,
                         )
@@ -133,5 +156,44 @@ fun ChatInputBar(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun MicGlyph(color: Color) {
+    Canvas(modifier = Modifier.size(17.dp)) {
+        val stroke = size.minDimension * 0.11f
+        val bodyWidth = size.width * 0.34f
+        val bodyHeight = size.height * 0.46f
+        drawRoundRect(
+            color = color,
+            topLeft = Offset((size.width - bodyWidth) / 2f, size.height * 0.08f),
+            size = Size(bodyWidth, bodyHeight),
+            cornerRadius = CornerRadius(bodyWidth / 2f),
+            style = Stroke(width = stroke),
+        )
+        drawArc(
+            color = color,
+            startAngle = 0f,
+            sweepAngle = 180f,
+            useCenter = false,
+            topLeft = Offset(size.width * 0.24f, size.height * 0.28f),
+            size = Size(size.width * 0.52f, size.height * 0.38f),
+            style = Stroke(width = stroke),
+        )
+        drawLine(
+            color = color,
+            start = Offset(size.width * 0.5f, size.height * 0.66f),
+            end = Offset(size.width * 0.5f, size.height * 0.82f),
+            strokeWidth = stroke,
+            cap = StrokeCap.Round,
+        )
+        drawLine(
+            color = color,
+            start = Offset(size.width * 0.32f, size.height * 0.86f),
+            end = Offset(size.width * 0.68f, size.height * 0.86f),
+            strokeWidth = stroke,
+            cap = StrokeCap.Round,
+        )
     }
 }

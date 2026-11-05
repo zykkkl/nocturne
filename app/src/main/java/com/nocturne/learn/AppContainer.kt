@@ -7,6 +7,7 @@ import com.nocturne.learn.ai.TutorEngine
 import com.nocturne.learn.data.ConnectionTester
 import com.nocturne.learn.data.SecretStore
 import com.nocturne.learn.data.SettingsRepository
+import com.nocturne.learn.data.ask.AskHistoryRepository
 import com.nocturne.learn.data.learning.LearningRepository
 import com.nocturne.learn.data.update.UpdateManager
 
@@ -15,6 +16,7 @@ class AppContainer(context: Context) {
     val secretStore = SecretStore(context)
     val connectionTester = ConnectionTester()
     val learningRepository = LearningRepository(context)
+    val askHistoryRepository = AskHistoryRepository(context)
     val modelClient = ModelClient()
     val tutorEngine = TutorEngine(modelClient, learningRepository)
     val askEngine = AskEngine(modelClient)
