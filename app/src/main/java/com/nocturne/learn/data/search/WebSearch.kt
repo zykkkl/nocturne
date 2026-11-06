@@ -36,6 +36,14 @@ object SearchProviders {
         note = "中文网页与中文资料覆盖较好。",
     )
 
+    val DeepSeek = SearchProviderInfo(
+        id = "deepseek",
+        label = "DeepSeek",
+        baseUrl = "https://api.deepseek.com/v1/tools/search",
+        keyHint = "sk-…（DeepSeek 开放平台）",
+        note = "DeepSeek 自研搜索，中文与权威来源较好；可直接复用 DeepSeek 模型 Key。",
+    )
+
     val Tavily = SearchProviderInfo(
         id = "tavily",
         label = "Tavily",
@@ -44,7 +52,7 @@ object SearchProviders {
         note = "英文与国际来源较多，适合查国外资料。",
     )
 
-    val all: List<SearchProviderInfo> = listOf(Bocha, Tavily)
+    val all: List<SearchProviderInfo> = listOf(Bocha, DeepSeek, Tavily)
 
     fun byId(id: String?): SearchProviderInfo =
         all.firstOrNull { it.id == id } ?: Bocha

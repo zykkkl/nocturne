@@ -103,9 +103,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun saveSearchSettings(enabled: Boolean, providerId: String, apiKey: String?) {
         viewModelScope.launch {
+            val secretId = SearchProviders.secretId(providerId)
             val clean = apiKey?.trim().orEmpty()
-            if (clean.isNotBlank()) {
-                container.secretStore.put(SearchProviders.secretId(providerId), clean)
+            when {
+                clean.isNotBlank() -> container.secretStore.put(secretId, clean)
+                providerId == SearchProviders.DeepSeek.id && !container.secretStore.has(secretId) ->
+                    modelDeepSeekKey()?.let { container.secretStore.put(secretId, it) }
             }
             repository.updateSearch(enabled, providerId)
         }
@@ -113,6 +116,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun savedSearchKey(providerId: String): String? =
         container.secretStore.get(SearchProviders.secretId(providerId))
+            ?: if (providerId == SearchProviders.DeepSeek.id) modelDeepSeekKey() else null
+
+    private fun modelDeepSeekKey(): String? {
+        val current = settings.value ?: return null
+        val provider = current.providers.firstOrNull {
+            it.templateId == SearchProviders.DeepSeek.id ||
+                it.baseUrl.contains("api.deepseek.com", ignoreCase = true)
+        } ?: return null
+        return container.secretStore.get(provider.id)
+    }
 
     suspend fun testSearch(
         providerId: String,

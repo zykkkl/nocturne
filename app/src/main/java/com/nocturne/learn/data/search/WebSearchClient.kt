@@ -14,7 +14,7 @@ import org.json.JSONObject
 class WebSearchException(message: String) : Exception(message)
 
 /**
- * 博查 / Tavily 的联网搜索。返回结果会被裁剪成标题、链接、摘要和站点，
+ * 博查 / DeepSeek / Tavily 的联网搜索。返回结果会被裁剪成标题、链接、摘要和站点，
  * 交给模型的是参考资料，而不是完整网页。
  */
 class WebSearchClient {
@@ -32,8 +32,42 @@ class WebSearchClient {
         val clean = query.trim()
         if (clean.isEmpty()) return@withContext emptyList()
         when (config.providerId) {
+            SearchProviders.DeepSeek.id -> searchDeepSeek(config, clean, limit)
             SearchProviders.Tavily.id -> searchTavily(config, clean, limit)
             else -> searchBocha(config, clean, limit)
+        }
+    }
+
+    private fun searchDeepSeek(
+        config: WebSearchConfig,
+        query: String,
+        limit: Int,
+    ): List<WebSearchSource> {
+        val body = JSONObject()
+            .put("query", query)
+            .put("count", limit.coerceIn(1, 10))
+            .put("need_content", false)
+            .toString()
+        val root = post(SearchProviders.DeepSeek.baseUrl, config.apiKey, body)
+        val results = root.optJSONArray("results") ?: return emptyList()
+        return buildList {
+            for (index in 0 until results.length()) {
+                val item = results.optJSONObject(index) ?: continue
+                val url = item.optString("url").trim()
+                if (!isHttpUrl(url)) continue
+                add(
+                    WebSearchSource(
+                        title = item.optString("title").ifBlank { hostOf(url) },
+                        url = url,
+                        snippet = item.optString("summary")
+                            .ifBlank { item.optString("snippet") }
+                            .trim()
+                            .take(600),
+                        site = item.optString("site_name").ifBlank { hostOf(url) },
+                    ),
+                )
+                if (size >= limit) break
+            }
         }
     }
 
@@ -121,11 +155,13 @@ class WebSearchClient {
                 val detail = runCatching {
                     val json = JSONObject(text)
                     json.optString("message")
+                        .ifBlank { json.optJSONObject("error")?.optString("message").orEmpty() }
                         .ifBlank { json.optJSONObject("detail")?.optString("error").orEmpty() }
                         .ifBlank { json.optString("detail") }
                 }.getOrNull().orEmpty()
                 val reason = when (response.code) {
                     401, 403 -> "Key 无效或没有权限"
+                    402 -> "账户余额不足"
                     429 -> "请求过于频繁"
                     in 500..599 -> "搜索服务暂时不可用"
                     else -> "搜索请求失败"
