@@ -5,6 +5,7 @@
 每次请求追加写入 tools/mock_requests.jsonl，便于检查对话历史。
 """
 import json
+import re
 import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
@@ -53,6 +54,74 @@ class Handler(BaseHTTPRequestHandler):
 
         messages = payload.get("messages", [])
         last = messages[-1] if messages else {}
+
+        system_text = "\n".join(
+            str(message.get("content", ""))
+            for message in messages
+            if message.get("role") == "system"
+        )
+        # 教材拆解：识别到教材分析器的系统提示词时，返回严格 JSON。
+        if "教材结构分析器" in system_text:
+            user_text = str(last.get("content", ""))
+            title = "教材片段"
+            source = "第 1 页"
+            for line in user_text.splitlines():
+                if line.startswith("章节："):
+                    title = line.removeprefix("章节：").strip() or title
+                if line.startswith("来源："):
+                    source = line.removeprefix("来源：").strip() or source
+            short_title = re.sub(r"^第.{1,3}章\s*", "", title).strip() or title
+            short_title = re.sub(r"^\d+(\.\d+)*\s*", "", short_title).strip() or short_title
+            short_title = short_title[:12]
+            points = [
+                {
+                    "title": f"{short_title}原理",
+                    "note": "先弄清楚这个章节在讲什么，以及它和前后内容的关系；能用自己的话复述，再往下走。",
+                    "source_ref": source,
+                },
+                {
+                    "title": f"{short_title}方法",
+                    "note": "把章节里的步骤拆成可执行的动作，知道每一步为什么这么做，而不只是记住结论。",
+                    "source_ref": source,
+                },
+                {
+                    "title": f"{short_title}例子",
+                    "note": "用一个正面例子和一个反例检验理解；能解释反例为什么不符合条件，才算真的掌握。",
+                    "source_ref": source,
+                },
+            ]
+            message = {
+                "role": "assistant",
+                "content": json.dumps(
+                    {
+                        "title": title,
+                        "summary": f"这一段围绕「{title}」展开。",
+                        "points": points,
+                    },
+                    ensure_ascii=False,
+                ),
+            }
+            response = {
+                "id": "chatcmpl-mock-textbook",
+                "object": "chat.completion",
+                "created": int(time.time()),
+                "model": "mock-tutor",
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": message,
+                        "finish_reason": "stop",
+                    }
+                ],
+                "usage": {"prompt_tokens": 10, "completion_tokens": 10, "total_tokens": 20},
+            }
+            body = json.dumps(response, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
 
         # 追问模块没有 tools，返回一段苏格拉底式引导，便于本地联调。
         if not payload.get("tools"):

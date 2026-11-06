@@ -26,8 +26,8 @@ android {
         applicationId = "com.nocturne.learn"
         minSdk = 26
         targetSdk = 35
-        versionCode = providers.gradleProperty("versionCode").map(String::toInt).orElse(9).get()
-        versionName = providers.gradleProperty("versionName").orElse("0.6.2").get()
+        versionCode = providers.gradleProperty("versionCode").map(String::toInt).orElse(10).get()
+        versionName = providers.gradleProperty("versionName").orElse("0.7.0").get()
         vectorDrawables { useSupportLibrary = true }
     }
 
@@ -104,6 +104,9 @@ dependencies {
 
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // 教材 PDF 文字层提取（扫描版 PDF 暂不支持）。
+    implementation("com.tom-roush:pdfbox-android:2.0.27.0")
 
     // 真实背景模糊：Android 12+ 走 RenderEffect，低版本自动降级为半透明。
     implementation("dev.chrisbanes.haze:haze:1.2.2")

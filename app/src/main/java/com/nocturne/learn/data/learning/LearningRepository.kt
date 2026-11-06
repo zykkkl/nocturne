@@ -234,6 +234,50 @@ class LearningRepository(
         }
     }
 
+    /** 从教材导入的知识点。 */
+    data class ImportedPoint(
+        val title: String,
+        val note: String = "",
+        val chapter: String = "",
+        val sourceRef: String = "",
+        val sourceExcerpt: String = "",
+    )
+
+    /**
+     * 新建一条教材航线，并把 AI 拆出的知识点一次性写进去。
+     * 同名教材不会覆盖旧航线，而是自动加序号。
+     */
+    fun importTextbook(goal: String, plan: String, points: List<ImportedPoint>): LearningState {
+        val cleanGoal = goal.trim().ifBlank { "未命名教材" }
+        val existingGoals = _archive.value.subjects.map { it.goal }.toSet()
+        var title = cleanGoal
+        var index = 2
+        while (title in existingGoals) {
+            title = "$cleanGoal · $index"
+            index++
+        }
+        createSubject(title)
+        return update { current ->
+            current.copy(
+                plan = plan.ifBlank { current.plan },
+                knowledgePoints = points
+                    .distinctBy { it.title.trim().lowercase() }
+                    .mapIndexed { order, point ->
+                    KnowledgePoint(
+                        id = UUID.randomUUID().toString(),
+                        title = point.title.trim(),
+                        note = point.note.trim(),
+                        chapter = point.chapter.trim(),
+                        sourceRef = point.sourceRef.trim(),
+                        sourceExcerpt = point.sourceExcerpt.trim(),
+                        order = order,
+                        updatedAt = System.currentTimeMillis(),
+                    )
+                }.filter { it.title.isNotBlank() },
+            )
+        }
+    }
+
     fun reset() {
         synchronized(lock) {
             file.delete()

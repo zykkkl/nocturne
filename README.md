@@ -16,6 +16,7 @@
 - **不限学科**：直接说想学什么，AI 生成诊断与学习路径
 - **多门航线**：一个应用里可以并列多条学习目标，各自有知识点、复习节奏和坚持天数，随时切换；不再需要的目标可以删除
 - **追问向导**：卡在某道题或某个概念时，用苏格拉底式提问一步步引导，不直接给答案；支持拍照与相册导入，对话独立于学习航线，可在本机保留历史、新建或删除；重启后继续追问时自动带上最近一张图片
+- **教材拆解**：导入文字版 PDF、DOCX、PPTX、TXT 或 Markdown，先在本地提取文字，再分段交给你的模型拆成知识点；预览、勾选后建立一条独立的教材航线，原文摘录会随知识点保留，讲课时有据可依（扫描版 PDF 与旧版 .doc / .ppt 暂不支持）
 - **应用内更新**：按版本号区分小更新、功能更新与大版本更新，只有后者会主动提醒，补丁版本可手动检查；发现新版本后可直接下载并交给系统安装器，不必再手工找 APK；学习数据与密钥会保留
 - **贾维斯式教学**：一次只讲一个概念，先问再讲，答完更新掌握度
 - **知识星图**：每个知识点有 0~1 掌握度，会随练习和复习点亮
@@ -35,6 +36,7 @@
 - [x] 多学习目标（多门航线）与独立进度，支持删除空目标
 - [x] 苏格拉底式追问模块，支持拍照与相册导入
 - [x] 追问独立于学习航线，历史对话本机保存，支持新建、切换和删除
+- [x] 教材导入与 AI 拆解：PDF / DOCX / PPTX / TXT / Markdown，预览勾选后建立独立航线
 - [x] 应用内检查更新、更新分级提示、下载并调起系统安装器
 - [x] 正式签名与 GitHub Release 自动发布
 - [ ] 每周复盘与学习报告
@@ -72,7 +74,7 @@ sdk.dir=/path/to/Android/Sdk
 
 ## 技术栈
 
-Kotlin 2.1 · Jetpack Compose · Haze · OkHttp · DataStore · kotlinx.serialization · Android Keystore
+Kotlin 2.1 · Jetpack Compose · Haze · OkHttp · DataStore · kotlinx.serialization · Android Keystore · PDFBox Android
 
 单 Activity + Navigation Compose；无 Room、无 Hilt、无后端。
 

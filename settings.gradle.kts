@@ -16,6 +16,12 @@ dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
+        maven(url = "https://maven.aliyun.com/repository/central") {
+            content {
+                includeGroupByRegex("com\\.tom-roush.*")
+                includeGroupByRegex("org\\.apache\\.pdfbox.*")
+            }
+        }
         mavenCentral()
     }
 }

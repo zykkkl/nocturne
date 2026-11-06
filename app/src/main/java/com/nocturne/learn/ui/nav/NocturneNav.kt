@@ -31,6 +31,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.nocturne.learn.AppViewModel
 import com.nocturne.learn.AskViewModel
+import com.nocturne.learn.ImportViewModel
 import com.nocturne.learn.SessionViewModel
 import com.nocturne.learn.data.ProviderTemplates
 import com.nocturne.learn.ui.components.NocturneBottomBar
@@ -39,6 +40,7 @@ import com.nocturne.learn.ui.components.UpdateDialog
 import com.nocturne.learn.ui.design.JarvisOrb
 import com.nocturne.learn.ui.screens.HomeScreen
 import com.nocturne.learn.ui.screens.AskScreen
+import com.nocturne.learn.ui.screens.ImportScreen
 import com.nocturne.learn.ui.screens.MapScreen
 import com.nocturne.learn.ui.screens.OnboardingScreen
 import com.nocturne.learn.ui.screens.ProfileScreen
@@ -117,6 +119,7 @@ fun NocturneNav(viewModel: AppViewModel) {
                         }
                     },
                     onAsk = { navController.navigate(Routes.ASK) },
+                    onImportTextbook = { navController.navigate(Routes.IMPORT_TEXTBOOK) },
                     onSelectSubject = viewModel::switchSubject,
                     onCreateSubject = viewModel::createSubject,
                     onDeleteSubject = viewModel::deleteSubject,
@@ -130,6 +133,20 @@ fun NocturneNav(viewModel: AppViewModel) {
                     providerReady = current.activeProvider != null,
                     onBack = { navController.popBackStack() },
                     onOpenProviders = { navController.navigate(Routes.API_PROVIDERS) },
+                )
+            }
+
+            composable(Routes.IMPORT_TEXTBOOK) {
+                val importViewModel: ImportViewModel = viewModel()
+                ImportScreen(
+                    viewModel = importViewModel,
+                    onBack = { navController.popBackStack() },
+                    onImported = {
+                        navController.navigate(Routes.HOME) {
+                            popUpTo(Routes.IMPORT_TEXTBOOK) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    },
                 )
             }
 

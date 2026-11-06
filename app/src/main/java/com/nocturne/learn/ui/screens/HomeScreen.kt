@@ -58,6 +58,7 @@ fun HomeScreen(
     onOpenMap: () -> Unit,
     onStartSession: () -> Unit,
     onAsk: () -> Unit,
+    onImportTextbook: () -> Unit,
     onSelectSubject: (String) -> Unit,
     onCreateSubject: (String, Int) -> Unit,
     onDeleteSubject: (String) -> Unit,
@@ -75,6 +76,7 @@ fun HomeScreen(
             dateText = dateText,
             appVersion = appVersion,
             onCreate = { showSubjects = true },
+            onImport = onImportTextbook,
         )
         if (showSubjects) {
             SubjectSwitcherSheet(
@@ -174,6 +176,8 @@ fun HomeScreen(
 
         item { AskCard(onAsk = onAsk) }
 
+        item { ImportBookCard(onImport = onImportTextbook) }
+
         item { MapTeaser(learning = learning, onOpenMap = onOpenMap) }
 
         item {
@@ -210,6 +214,7 @@ private fun EmptyHome(
     dateText: String,
     appVersion: String,
     onCreate: () -> Unit,
+    onImport: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -242,6 +247,12 @@ private fun EmptyHome(
             actionText = "建立第一条航线",
             onAction = onCreate,
         )
+        Spacer(Modifier.height(12.dp))
+        GhostButton(
+            text = "导入一本教材",
+            onClick = onImport,
+            modifier = Modifier.fillMaxWidth(),
+        )
         Spacer(Modifier.weight(1f))
         Text(
             text = "夜航 · $appVersion",
@@ -272,6 +283,39 @@ private fun AskCard(onAsk: () -> Unit) {
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text = "苏格拉底式追问，一次一个问题，不直接给答案。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = NocturneColors.TextSecondary,
+                )
+            }
+            Text(
+                text = "›",
+                style = MaterialTheme.typography.titleLarge,
+                color = NocturneColors.TextTertiary,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ImportBookCard(onImport: () -> Unit) {
+    val shape = RoundedCornerShape(26.dp)
+    GlassSurface(
+        modifier = Modifier
+            .clip(shape)
+            .clickable(onClick = onImport),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                SectionLabel("教材")
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "把一本书交给夜航",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = "PDF / Word / PPT，AI 拆成章节和知识点。",
                     style = MaterialTheme.typography.bodySmall,
                     color = NocturneColors.TextSecondary,
                 )
@@ -388,6 +432,9 @@ private fun TodayCard(
                     text = title,
                     style = MaterialTheme.typography.headlineSmall,
                     color = Color.White,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(end = 10.dp),
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(

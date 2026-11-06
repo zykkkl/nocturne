@@ -201,6 +201,11 @@ class TutorEngine(
                         put("title", target.title)
                         put("mastery", target.mastery)
                         put("note", target.note.take(160))
+                        if (target.chapter.isNotBlank()) put("chapter", target.chapter.take(80))
+                        if (target.sourceRef.isNotBlank()) put("source_ref", target.sourceRef.take(80))
+                        if (target.sourceExcerpt.isNotBlank()) {
+                            put("source_excerpt", target.sourceExcerpt.take(1800))
+                        }
                     })
                 }
                 put("due_titles", buildJsonArray { due.forEach { add(it) } })
@@ -239,6 +244,7 @@ class TutorEngine(
             6. 学生说结束、或本次目标完成时，调用 end_session，用一句话总结本次学习，并告诉学生下次从哪继续。
             7. 全程使用简体中文，语气克制、温和、具体。不要提“工具调用”“JSON”“函数”这些词，也不要把内部状态原样念给学生。
             8. 每次回复控制在 120 字以内，除非学生在问一个需要展开的问题。不要用表情符号。
+            9. 如果 get_next_kp 返回了 source_excerpt，就以这段教材原文为准来讲解和出题；不要引入原文没有的概念，原文不清晰的地方先问学生。
 
             ## 工具
             你可以调用 get_next_kp、save_plan、update_mastery、schedule_review、record_note、end_session。工具执行后，用自然语言把结果告诉学生，然后继续教学。

@@ -11,6 +11,14 @@ data class KnowledgePoint(
     val mastery: Float = 0f,
     val status: String = "new",
     val updatedAt: Long = 0L,
+    /** 教材航线里的章节名；普通航线为空。 */
+    val chapter: String = "",
+    /** 第几页 / 第几张幻灯片，方便回到原文。 */
+    val sourceRef: String = "",
+    /** 从教材里摘出的原文片段，讲课时用来对齐教材。 */
+    val sourceExcerpt: String = "",
+    /** 在整本书里的顺序。 */
+    val order: Int = 0,
 )
 
 @Serializable

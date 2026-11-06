@@ -26,6 +26,8 @@ captures/
 screenshots/
 tools/mock_requests.jsonl
 ui.xml
+state.json
+testdata/
 
 # Release signing
 keystore.properties
