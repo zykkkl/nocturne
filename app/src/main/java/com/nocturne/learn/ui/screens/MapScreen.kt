@@ -1,6 +1,7 @@
 package com.nocturne.learn.ui.screens
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,8 +49,13 @@ private val constellationPoints = listOf(
 )
 
 @Composable
-fun MapScreen(learning: LearningState, onBackHome: () -> Unit) {
+fun MapScreen(
+    learning: LearningState,
+    onBackHome: () -> Unit,
+    onOpenOutline: () -> Unit,
+) {
     val points = learning.knowledgePoints
+    val hasChapters = points.any { it.chapter.isNotBlank() }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -92,6 +98,29 @@ fun MapScreen(learning: LearningState, onBackHome: () -> Unit) {
                 onClick = onBackHome,
                 modifier = Modifier.fillMaxWidth(),
             )
+        }
+        if (hasChapters) {
+            Spacer(Modifier.height(16.dp))
+            GlassSurface(
+                modifier = Modifier.clickable(onClick = onOpenOutline),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        SectionLabel("教材目录")
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            text = "按章节看知识点与来源",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = NocturneColors.TextSecondary,
+                        )
+                    }
+                    Text(
+                        text = "打开 ›",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = NocturneColors.ChampagneLight,
+                    )
+                }
+            }
         }
         if (points.isNotEmpty()) {
             Spacer(Modifier.height(16.dp))

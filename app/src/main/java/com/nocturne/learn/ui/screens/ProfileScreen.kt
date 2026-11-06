@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.nocturne.learn.data.AppSettings
 import com.nocturne.learn.data.learning.LearningState
+import com.nocturne.learn.data.search.SearchProviders
 import com.nocturne.learn.data.update.UpdateState
 import com.nocturne.learn.ui.components.Hairline
 import com.nocturne.learn.ui.components.SettingRow
@@ -52,6 +53,7 @@ fun ProfileScreen(
     subjects: List<LearningState>,
     activeSubjectId: String?,
     onOpenProviders: () -> Unit,
+    onOpenSearch: () -> Unit,
     onUpdatePlan: (String, Int) -> Unit,
     onSelectSubject: (String) -> Unit,
     onCreateSubject: (String, Int) -> Unit,
@@ -155,6 +157,16 @@ fun ProfileScreen(
                 onClick = onOpenProviders,
                 subtitle = activeProvider?.let { "${it.displayName} · ${it.model}" }
                     ?: "还没有接入模型",
+            )
+            Hairline()
+            SettingRow(
+                title = "联网搜索",
+                onClick = onOpenSearch,
+                subtitle = if (settings.searchEnabled) {
+                    "已开启 · ${SearchProviders.byId(settings.searchProviderId).label}"
+                } else {
+                    "未开启 · 让贾维斯查证资料"
+                },
             )
             Hairline()
             SettingRow(

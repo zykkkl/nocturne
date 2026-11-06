@@ -161,12 +161,58 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(body)
             return
 
+        tool_names = {
+            item.get("function", {}).get("name")
+            for item in payload.get("tools", [])
+            if isinstance(item, dict)
+        }
         assistant_tools = {
             call.get("function", {}).get("name")
             for message in messages
             if message.get("role") == "assistant"
             for call in message.get("tool_calls", [])
         }
+
+        # 联网搜索联调：有 web_search 工具时先调用一次，工具结果返回后给带来源的答复。
+        if "web_search" in tool_names:
+            if "web_search" not in assistant_tools:
+                message = {
+                    "role": "assistant",
+                    "content": None,
+                    "tool_calls": [
+                        tool_call(
+                            "web_search",
+                            {"query": "夜航 夜航 App 联网搜索"},
+                            "call_search_1",
+                        )
+                    ],
+                }
+            else:
+                message = {
+                    "role": "assistant",
+                    "content": "我查到一条资料：夜航的联网搜索已经接通。你可以点开下面的来源核对。",
+                }
+            response = {
+                "id": "chatcmpl-mock-search",
+                "object": "chat.completion",
+                "created": int(time.time()),
+                "model": "mock-tutor",
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": message,
+                        "finish_reason": "tool_calls" if message.get("tool_calls") else "stop",
+                    }
+                ],
+                "usage": {"prompt_tokens": 10, "completion_tokens": 10, "total_tokens": 20},
+            }
+            body = json.dumps(response, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
 
         message = {"role": "assistant", "content": None}
         if last.get("role") == "tool":

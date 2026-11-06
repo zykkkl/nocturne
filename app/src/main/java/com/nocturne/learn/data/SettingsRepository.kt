@@ -66,12 +66,21 @@ class SettingsRepository(private val context: Context) {
         context.nocturneDataStore.edit { prefs -> prefs[Keys.ActiveProvider] = providerId }
     }
 
+    suspend fun updateSearch(enabled: Boolean, providerId: String) {
+        context.nocturneDataStore.edit { prefs ->
+            prefs[Keys.SearchEnabled] = enabled
+            prefs[Keys.SearchProvider] = providerId
+        }
+    }
+
     private fun Preferences.toSettings(): AppSettings = AppSettings(
         onboardingDone = this[Keys.Onboarding] ?: false,
         goal = this[Keys.Goal].orEmpty(),
         dailyMinutes = this[Keys.DailyMinutes] ?: 30,
         providers = decodeProviders(this[Keys.Providers]),
         activeProviderId = this[Keys.ActiveProvider],
+        searchEnabled = this[Keys.SearchEnabled] ?: false,
+        searchProviderId = this[Keys.SearchProvider] ?: "bocha",
     )
 
     private fun decodeProviders(raw: String?): List<ProviderConfig> {
@@ -85,5 +94,7 @@ class SettingsRepository(private val context: Context) {
         val DailyMinutes = intPreferencesKey("daily_minutes")
         val Providers = stringPreferencesKey("providers")
         val ActiveProvider = stringPreferencesKey("active_provider")
+        val SearchEnabled = booleanPreferencesKey("search_enabled")
+        val SearchProvider = stringPreferencesKey("search_provider")
     }
 }

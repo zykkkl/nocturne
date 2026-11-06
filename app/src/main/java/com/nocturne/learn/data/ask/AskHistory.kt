@@ -2,6 +2,7 @@ package com.nocturne.learn.data.ask
 
 import android.content.Context
 import com.nocturne.learn.data.AskImageStore
+import com.nocturne.learn.data.search.WebSearchSource
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
@@ -18,6 +19,7 @@ data class AskMessage(
     val fromUser: Boolean,
     val text: String,
     val imagePath: String? = null,
+    val sources: List<WebSearchSource> = emptyList(),
     val createdAt: Long = System.currentTimeMillis(),
 )
 

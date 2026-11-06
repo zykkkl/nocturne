@@ -57,6 +57,7 @@ import androidx.core.content.FileProvider
 import com.nocturne.learn.AskViewModel
 import com.nocturne.learn.data.AskImageStore
 import com.nocturne.learn.data.ask.AskMessage
+import com.nocturne.learn.ui.components.SourceLinks
 import com.nocturne.learn.ui.components.AskHistorySheet
 import com.nocturne.learn.ui.components.ChatInputBar
 import com.nocturne.learn.ui.design.ChampagneButton
@@ -556,6 +557,10 @@ private fun AskBubble(message: AskMessage) {
                     ),
                     color = if (message.fromUser) Color.White else NocturneColors.TextPrimary,
                 )
+            }
+            if (message.sources.isNotEmpty()) {
+                Spacer(Modifier.height(9.dp))
+                SourceLinks(message.sources)
             }
         }
     }

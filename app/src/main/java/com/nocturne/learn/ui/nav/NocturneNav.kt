@@ -43,10 +43,12 @@ import com.nocturne.learn.ui.screens.AskScreen
 import com.nocturne.learn.ui.screens.ImportScreen
 import com.nocturne.learn.ui.screens.MapScreen
 import com.nocturne.learn.ui.screens.OnboardingScreen
+import com.nocturne.learn.ui.screens.OutlineScreen
 import com.nocturne.learn.ui.screens.ProfileScreen
 import com.nocturne.learn.ui.screens.ProviderEditorScreen
 import com.nocturne.learn.ui.screens.ProviderListScreen
 import com.nocturne.learn.ui.screens.ReviewScreen
+import com.nocturne.learn.ui.screens.SearchSettingsScreen
 import com.nocturne.learn.ui.screens.SessionScreen
 import com.nocturne.learn.ui.theme.NocturneColors
 
@@ -158,10 +160,18 @@ fun NocturneNav(viewModel: AppViewModel) {
                 )
             }
 
+            composable(Routes.OUTLINE) {
+                OutlineScreen(
+                    learning = learning,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
             composable(Routes.MAP) {
                 MapScreen(
                     learning = learning,
                     onBackHome = { navController.navigateTab(Routes.HOME) },
+                    onOpenOutline = { navController.navigate(Routes.OUTLINE) },
                 )
             }
 
@@ -179,6 +189,21 @@ fun NocturneNav(viewModel: AppViewModel) {
                 )
             }
 
+            composable(Routes.SEARCH_SETTINGS) {
+                SearchSettingsScreen(
+                    settings = current,
+                    savedKey = viewModel::savedSearchKey,
+                    onBack = { navController.popBackStack() },
+                    onSave = { enabled, providerId, apiKey ->
+                        viewModel.saveSearchSettings(enabled, providerId, apiKey)
+                        navController.popBackStack()
+                    },
+                    onTest = { providerId, apiKey, query ->
+                        viewModel.testSearch(providerId, apiKey, query)
+                    },
+                )
+            }
+
             composable(Routes.PROFILE) {
                 ProfileScreen(
                     settings = current,
@@ -186,6 +211,7 @@ fun NocturneNav(viewModel: AppViewModel) {
                     subjects = subjects,
                     activeSubjectId = activeSubjectId,
                     onOpenProviders = { navController.navigate(Routes.API_PROVIDERS) },
+                    onOpenSearch = { navController.navigate(Routes.SEARCH_SETTINGS) },
                     onUpdatePlan = viewModel::updatePlan,
                     onSelectSubject = viewModel::switchSubject,
                     onCreateSubject = viewModel::createSubject,

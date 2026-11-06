@@ -247,14 +247,8 @@ private fun titleFor(state: UpdateState): String = when (state) {
 
 private fun bodyFor(state: UpdateState): String = when (state) {
     is UpdateState.Checking -> "正在向 GitHub 查询夜航的最新版本。"
-    is UpdateState.Available -> when (state.info.kind) {
-        UpdateKind.PATCH ->
-            "夜航 v${state.info.version} 是一次小更新，主要修复问题与优化细节。它不会清除航线、知识点或密钥。"
-        UpdateKind.MINOR ->
-            "夜航 v${state.info.version} 带来了新功能。更新不会清除航线、知识点或密钥。"
-        UpdateKind.MAJOR ->
-            "夜航 v${state.info.version} 是一次大版本更新，可能有较大的界面或行为变化。更新前建议确认更新说明。"
-    }
+    is UpdateState.Available ->
+        "夜航 v${state.info.version} 已发布。更新不会清除航线、知识点或密钥；具体变更见下方更新说明。"
     is UpdateState.Downloading -> "正在从 GitHub Releases 下载签名安装包。"
     is UpdateState.Ready -> "安装包已就绪。点击「安装」后，在系统弹窗中确认即可覆盖升级。"
     is UpdateState.UpToDate -> "当前 v${state.version} 已是目前发布的最新版本。"

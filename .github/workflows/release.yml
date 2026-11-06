@@ -63,16 +63,35 @@ jobs:
           name: nocturne-release
           path: app/build/outputs/apk/release/app-release.apk
 
+      - name: Extract release notes
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v header="## v$VERSION" '
+            $0 == header { found = 1; next }
+            /^## / { found = 0 }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "夜航 $GITHUB_REF_NAME 正式签名安装包。" > release-notes.md
+            echo "" >> release-notes.md
+            echo "具体变更见仓库提交记录。" >> release-notes.md
+          fi
+          {
+            echo ""
+            echo "---"
+            echo ""
+            echo "安装 / 升级：下载 \`app-release.apk\` 直接安装。同一签名、更高 versionCode 会覆盖升级，保留本机学习数据与 API 配置。"
+            echo ""
+            echo "注意：Release 包名是 \`com.nocturne.learn\`，与 debug 包 \`com.nocturne.learn.debug\` 不同，两者可并存；从 debug 切到 release 不会继承旧数据。"
+          } >> release-notes.md
+          echo "----- release notes -----"
+          cat release-notes.md
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: app/build/outputs/apk/release/app-release.apk
           name: 夜航 ${{ github.ref_name }}
-          body: |
-            夜航 ${{ github.ref_name }} 正式签名安装包。
-
-            安装 / 升级：下载 `app-release.apk` 直接安装。同一签名、更高 versionCode 会覆盖升级，保留本机学习数据与 API 配置。
-
-            注意：Release 包名是 `com.nocturne.learn`，与 debug 包 `com.nocturne.learn.debug` 不同，两者可并存；从 debug 切到 release 不会继承旧数据。
+          body_path: release-notes.md
           draft: false
           prerelease: false

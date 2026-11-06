@@ -9,6 +9,8 @@ object Routes {
     const val SESSION = "session"
     const val ASK = "ask"
     const val IMPORT_TEXTBOOK = "import"
+    const val OUTLINE = "outline"
+    const val SEARCH_SETTINGS = "search"
 
     const val API_PROVIDERS = "api"
     const val API_NEW = "api/new/{templateId}"

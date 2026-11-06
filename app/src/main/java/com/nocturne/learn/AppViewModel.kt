@@ -7,6 +7,9 @@ import com.nocturne.learn.data.AppSettings
 import com.nocturne.learn.data.ConnectionResult
 import com.nocturne.learn.data.ProviderConfig
 import com.nocturne.learn.data.learning.LearningState
+import com.nocturne.learn.data.search.SearchProviders
+import com.nocturne.learn.data.search.WebSearchConfig
+import com.nocturne.learn.data.search.WebSearchSource
 import com.nocturne.learn.data.update.UpdateState
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -97,6 +100,28 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun savedKey(providerId: String): String? = container.secretStore.get(providerId)
 
     fun hasKey(providerId: String): Boolean = container.secretStore.has(providerId)
+
+    fun saveSearchSettings(enabled: Boolean, providerId: String, apiKey: String?) {
+        viewModelScope.launch {
+            val clean = apiKey?.trim().orEmpty()
+            if (clean.isNotBlank()) {
+                container.secretStore.put(SearchProviders.secretId(providerId), clean)
+            }
+            repository.updateSearch(enabled, providerId)
+        }
+    }
+
+    fun savedSearchKey(providerId: String): String? =
+        container.secretStore.get(SearchProviders.secretId(providerId))
+
+    suspend fun testSearch(
+        providerId: String,
+        apiKey: String,
+        query: String,
+    ): List<WebSearchSource> = container.webSearchClient.search(
+        config = WebSearchConfig(providerId, apiKey),
+        query = query,
+    )
 
     suspend fun testConnection(baseUrl: String, apiKey: String): ConnectionResult =
         container.connectionTester.test(baseUrl, apiKey)

@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.sp
 import com.nocturne.learn.SessionMessage
 import com.nocturne.learn.SessionViewModel
 import com.nocturne.learn.data.learning.LearningState
+import com.nocturne.learn.ui.components.SourceLinks
 import com.nocturne.learn.ui.design.GlassSurface
 import com.nocturne.learn.ui.design.JarvisOrb
 import com.nocturne.learn.ui.design.RowDot
@@ -227,6 +228,10 @@ private fun MessageBubble(message: SessionMessage) {
                         )
                     }
                 }
+            }
+            if (message.sources.isNotEmpty()) {
+                Spacer(Modifier.height(9.dp))
+                SourceLinks(message.sources)
             }
         }
     }

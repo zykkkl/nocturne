@@ -5,8 +5,12 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.nocturne.learn.ai.ChatTurn
 import com.nocturne.learn.ai.ModelException
+import com.nocturne.learn.data.AppSettings
 import com.nocturne.learn.data.ProviderConfig
 import com.nocturne.learn.data.learning.LearningState
+import com.nocturne.learn.data.search.SearchProviders
+import com.nocturne.learn.data.search.WebSearchConfig
+import com.nocturne.learn.data.search.WebSearchSource
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +25,7 @@ data class SessionMessage(
     val fromUser: Boolean,
     val text: String,
     val notes: List<String> = emptyList(),
+    val sources: List<WebSearchSource> = emptyList(),
 )
 
 data class SessionUiState(
@@ -63,6 +68,7 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
                 apiKey = key,
                 dailyMinutes = subject.dailyMinutes,
                 userText = "开始今天的学习。",
+                search = searchConfig(settings),
             )
         }
     }
@@ -86,6 +92,7 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
                 apiKey = key,
                 dailyMinutes = learning.state.value.dailyMinutes,
                 userText = clean,
+                search = searchConfig(settings),
             )
         }
     }
@@ -95,6 +102,7 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
         apiKey: String,
         dailyMinutes: Int,
         userText: String,
+        search: WebSearchConfig?,
     ) {
         _ui.update { it.copy(thinking = true, error = null) }
         history += ChatTurn(role = "user", content = userText)
@@ -104,6 +112,7 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
                 apiKey = apiKey,
                 history = history.toList(),
                 dailyMinutes = dailyMinutes,
+                search = search,
             )
             history.clear()
             history.addAll(result.history)
@@ -116,6 +125,7 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
                         fromUser = false,
                         text = text,
                         notes = result.toolNotes,
+                        sources = result.sources,
                     ),
                     thinking = false,
                 )
@@ -129,5 +139,13 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
             }
             _ui.update { it.copy(thinking = false, error = message) }
         }
+    }
+
+    private fun searchConfig(settings: AppSettings): WebSearchConfig? {
+        if (!settings.searchEnabled) return null
+        val providerId = settings.searchProviderId
+        val key = container.secretStore.get(SearchProviders.secretId(providerId))
+            ?: return null
+        return WebSearchConfig(providerId, key)
     }
 }

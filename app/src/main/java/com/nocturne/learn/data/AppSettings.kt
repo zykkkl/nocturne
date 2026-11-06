@@ -20,6 +20,8 @@ data class AppSettings(
     val dailyMinutes: Int = 30,
     val providers: List<ProviderConfig> = emptyList(),
     val activeProviderId: String? = null,
+    val searchEnabled: Boolean = false,
+    val searchProviderId: String = "bocha",
 ) {
     val activeProvider: ProviderConfig?
         get() = providers.firstOrNull { it.id == activeProviderId } ?: providers.firstOrNull()

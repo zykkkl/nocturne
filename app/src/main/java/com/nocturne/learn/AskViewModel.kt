@@ -7,8 +7,11 @@ import androidx.lifecycle.viewModelScope
 import com.nocturne.learn.ai.ChatTurn
 import com.nocturne.learn.ai.ModelException
 import com.nocturne.learn.data.AskImageStore
+import com.nocturne.learn.data.AppSettings
 import com.nocturne.learn.data.ask.AskConversation
 import com.nocturne.learn.data.ask.AskMessage
+import com.nocturne.learn.data.search.SearchProviders
+import com.nocturne.learn.data.search.WebSearchConfig
 import java.io.File
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -101,11 +104,16 @@ class AskViewModel(application: Application) : AndroidViewModel(application) {
                     provider = provider,
                     apiKey = key,
                     history = history.toList(),
+                    search = searchConfig(settings),
                 )
                 history.clear()
                 history.addAll(result.history)
                 historyRepository.append(
-                    AskMessage(fromUser = false, text = result.reply),
+                    AskMessage(
+                        fromUser = false,
+                        text = result.reply,
+                        sources = result.sources,
+                    ),
                 )
                 _ui.update { it.copy(thinking = false) }
             } catch (error: CancellationException) {
@@ -178,5 +186,13 @@ class AskViewModel(application: Application) : AndroidViewModel(application) {
             history.clear()
             history.addAll(turns)
         }
+    }
+
+    private fun searchConfig(settings: AppSettings): WebSearchConfig? {
+        if (!settings.searchEnabled) return null
+        val providerId = settings.searchProviderId
+        val key = container.secretStore.get(SearchProviders.secretId(providerId))
+            ?: return null
+        return WebSearchConfig(providerId, key)
     }
 }
